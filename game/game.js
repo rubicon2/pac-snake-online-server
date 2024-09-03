@@ -1,3 +1,5 @@
+const Player = require('./player');
+
 class Game {
   #updateTimeout = null;
 
@@ -14,22 +16,23 @@ class Game {
     this.onGameStateChange(this);
   }
 
-  #players = new Set();
+  // Map client ws to player.
+  #players = new Map();
   get players() {
     return [...this.#players];
   }
-  playerCanJoin(player) {
-    return this.#players.size < 4 && !this.#players.has(player);
+  playerCanJoin(ws) {
+    return this.#players.size < 4 && !this.#players.has(ws);
   }
-  addPlayer(player) {
+  addPlayer(ws) {
     // Server should check before trying to add, but just in case.
-    if (this.playerCanJoin(player)) {
-      this.#players.add(player);
+    if (this.playerCanJoin(ws)) {
+      this.#players.set(ws, new Player());
       this.onGameStateChange(this);
     }
   }
-  removePlayer(player) {
-    this.#players.delete(player);
+  removePlayer(ws) {
+    this.#players.delete(ws);
     this.onGameStateChange(this);
   }
 
@@ -38,8 +41,8 @@ class Game {
   }
 
   get allPlayersAreReady() {
-    this.#players.forEach((player) => {
-      if (!player.isReady) return false;
+    this.#players.forEach((value, key, map) => {
+      if (!value.isReady) return false;
     });
     return true;
   }

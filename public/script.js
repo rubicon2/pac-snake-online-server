@@ -72,7 +72,7 @@ socket.onmessage = (event) => {
     }
 
     case 'left_lobby': {
-      currentLobbyElement.innerText = '';
+      currentLobbyElement.innerText = `You're in the lobby list`;
       break;
     }
 
@@ -136,7 +136,7 @@ function joinLobby(lobby_name) {
   );
 }
 
-function leaveLobby(lobby) {
+function leaveLobby() {
   socket.send(JSON.stringify({ type: 'player_leave_lobby_request' }));
 }
 

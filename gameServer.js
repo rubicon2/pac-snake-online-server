@@ -5,7 +5,7 @@ const Game = require('./game/game');
 
 const MAX_GAMES = process.env.MAX_GAMES || 4;
 
-// ws object maps to all other info, e.g. player object, lobby object
+// ws object maps to what lobby_name they are associated with
 const clientMetadata = new Map();
 // lobby_name maps to game object
 const games = new Map();
@@ -79,14 +79,14 @@ function gameServer(app, port) {
           const { lobby_name } = data;
           if (games.has(lobby_name)) {
             // If player is already in a lobby, remove them.
-            const { id, player, lobby: previousLobby } = clientMetadata.get(ws);
-            if (previousLobby) previousLobby.removePlayer(player);
+            const { id, lobby: previousLobby } = clientMetadata.get(ws);
+            if (previousLobby) previousLobby.removePlayer(ws);
 
             // Now join the new lobby.
             const lobby = games.get(lobby_name);
-            if (lobby.playerCanJoin(player)) {
+            if (lobby.playerCanJoin(ws)) {
               clientMetadata.get(ws).lobby = lobby;
-              lobby.addPlayer(player);
+              lobby.addPlayer(ws);
               console.log(`Player: ${id} joined game: ${lobby_name}`);
               // Send message to client about their amazing success.
               ws.send(JSON.stringify({ type: 'joined_lobby', lobby_name }));
@@ -101,14 +101,22 @@ function gameServer(app, port) {
         }
 
         case 'player_leave_lobby_request': {
-          const { id, player, lobby } = clientMetadata.get(ws);
-          lobby.removePlayer(player);
-          console.log(`Player: ${id} left game`);
+          const { id, lobby } = clientMetadata.get(ws);
+          clientMetadata.get(ws).lobby = null;
+          if (lobby) {
+            lobby.removePlayer(ws);
+            console.log(`Player: ${id} left game`);
+            ws.send(
+              JSON.stringify({
+                type: 'left_lobby',
+              }),
+            );
+          }
         }
 
         case 'player_ready_changed': {
-          clientMetadata.get(ws).player.ready = data.ready;
-          console.log('GAMES: ', games);
+          const { player, lobby } = clientMetadata.get(ws);
+          // clientMetadata.get(ws).player.ready = data.ready;
           // Check if all players in that player's game are ready.
           // Need to find a nice way to link each websocket with a player and a game.
           // Get game and player from websocket clientMetadata, then get the rest of the players from??
