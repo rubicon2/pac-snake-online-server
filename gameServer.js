@@ -91,7 +91,7 @@ function gameServer(app, port) {
           if (games.has(lobby_name)) {
             // If player is already in a lobby, remove them.
             const { id, lobby: previousLobby } = clientMetadata.get(ws);
-            if (previousLobby) previousLobby.removePlayer(ws);
+            if (previousLobby) previousLobby.removePlayer(id);
 
             // Now join the new lobby.
             const lobby = games.get(lobby_name);
