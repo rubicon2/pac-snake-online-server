@@ -143,6 +143,7 @@ function gameServer(app, port) {
 
             sendLobbyListUpdate(games);
           }
+          break;
         }
 
         case 'player_ready_changed': {
