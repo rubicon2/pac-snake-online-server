@@ -42,7 +42,7 @@ class Game {
 
   get allPlayersAreReady() {
     this.#players.forEach((value, key, map) => {
-      if (!value.isReady) return false;
+      if (!value.ready) return false;
     });
     return true;
   }
