@@ -16,23 +16,23 @@ class Game {
     this.onGameStateChange(this);
   }
 
-  // Map client ws to player.
+  // Map client unique id -> player object
   #players = new Map();
   get players() {
     return this.#players;
   }
-  playerCanJoin(ws) {
-    return this.#players.size < 4 && !this.#players.has(ws);
+  playerCanJoin(id) {
+    return this.#players.size < 4 && !this.#players.has(id);
   }
-  addPlayer(ws) {
+  addPlayer(id) {
     // Server should check before trying to add, but just in case.
-    if (this.#state === 'lobby' && this.playerCanJoin(ws)) {
-      this.#players.set(ws, new Player());
+    if (this.#state === 'lobby' && this.playerCanJoin(id)) {
+      this.#players.set(id, new Player());
       this.onGameStateChange(this);
     }
   }
-  removePlayer(ws) {
-    this.#players.delete(ws);
+  removePlayer(id) {
+    this.#players.delete(id);
     this.onGameStateChange(this);
   }
 

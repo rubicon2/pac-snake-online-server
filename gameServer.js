@@ -97,7 +97,7 @@ function gameServer(app, port) {
             const lobby = games.get(lobby_name);
             if (lobby.state === 'lobby' && lobby.playerCanJoin(ws)) {
               clientMetadata.get(ws).lobby = lobby;
-              lobby.addPlayer(ws);
+              lobby.addPlayer(id);
               console.log(`Player: ${id} joined game: ${lobby_name}`);
 
               // Send message to client about their amazing success.
@@ -133,7 +133,7 @@ function gameServer(app, port) {
           const { id, lobby } = clientMetadata.get(ws);
           clientMetadata.get(ws).lobby = null;
           if (lobby) {
-            lobby.removePlayer(ws);
+            lobby.removePlayer(id);
             console.log(`Player: ${id} left game`);
             ws.send(
               JSON.stringify({
@@ -147,18 +147,6 @@ function gameServer(app, port) {
         }
 
         case 'player_ready_changed': {
-          const { player, lobby } = clientMetadata.get(ws);
-          // clientMetadata.get(ws).player.ready = data.ready;
-          // Check if all players in that player's game are ready.
-          // Need to find a nice way to link each websocket with a player and a game.
-          // Get game and player from websocket clientMetadata, then get the rest of the players from??
-          // Finding a good way to relate all this info to each other in a flexible way seems difficult.
-          // Link it all back to the ws?
-          // ws -> player
-          // ws -> lobby
-          // how to do lobby -> players?
-          // or lobby -> ws clients?
-          // ORRRR ws -> lobby -> player list
           break;
         }
 
