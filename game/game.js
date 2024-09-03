@@ -41,9 +41,10 @@ class Game {
   }
 
   get allPlayersAreReady() {
-    this.#players.forEach((value, key, map) => {
-      if (!value.ready) return false;
-    });
+    const allPlayers = this.#players.values();
+    for (const player of allPlayers) {
+      if (!player.ready) return false;
+    }
     return true;
   }
 
