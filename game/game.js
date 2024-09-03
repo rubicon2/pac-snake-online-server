@@ -35,6 +35,17 @@ class Game {
     this.#players.delete(id);
     this.onGameStateChange(this);
   }
+  setPlayerReady(id, isReady) {
+    if (this.#players.has(id)) {
+      this.#players.get(id).ready = isReady;
+      if (this.allPlayersAreReady) {
+        console.log('all players ready!');
+        this.state = 'running';
+      } else {
+        this.onGameStateChange(this);
+      }
+    }
+  }
 
   get playerCount() {
     return this.#players.size;
