@@ -95,7 +95,7 @@ function gameServer(app, port) {
 
             // Now join the new lobby.
             const lobby = games.get(lobby_name);
-            if (lobby.playerCanJoin(ws)) {
+            if (lobby.state === 'lobby' && lobby.playerCanJoin(ws)) {
               clientMetadata.get(ws).lobby = lobby;
               lobby.addPlayer(ws);
               console.log(`Player: ${id} joined game: ${lobby_name}`);
@@ -106,13 +106,19 @@ function gameServer(app, port) {
               // Send updated list to all clients.
               sendLobbyListUpdate(games);
             } else {
-              console.log('Player could not join game');
               // Send message to client about their hideous failure.
               if (lobby.players.size >= 4) {
                 ws.send(
                   JSON.stringify({
                     type: 'message_received',
                     message: `Could not join lobby: ${lobby_name} as it is already full`,
+                  }),
+                );
+              } else if (lobby.state !== 'lobby') {
+                ws.send(
+                  JSON.stringify({
+                    type: 'message_received',
+                    message: `Could not join lobby: ${lobby_name} as the game is already running`,
                   }),
                 );
               }

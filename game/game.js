@@ -26,7 +26,7 @@ class Game {
   }
   addPlayer(ws) {
     // Server should check before trying to add, but just in case.
-    if (this.playerCanJoin(ws)) {
+    if (this.#state === 'lobby' && this.playerCanJoin(ws)) {
       this.#players.set(ws, new Player());
       this.onGameStateChange(this);
     }
