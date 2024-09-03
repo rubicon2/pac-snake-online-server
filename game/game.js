@@ -19,7 +19,7 @@ class Game {
   // Map client ws to player.
   #players = new Map();
   get players() {
-    return [...this.#players];
+    return this.#players;
   }
   playerCanJoin(ws) {
     return this.#players.size < 4 && !this.#players.has(ws);

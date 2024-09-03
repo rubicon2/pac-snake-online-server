@@ -115,9 +115,14 @@ function refreshLobbyListItems(element, lobbies) {
 
   // Now make the new ones.
   for (const lobby of lobbies) {
+    const { lobby_name, player_count } = lobby;
     const li = document.createElement('li');
-    li.innerText = lobby;
-    li.onclick = () => joinLobby(lobby);
+    li.innerText = lobby_name;
+    li.onclick = () => joinLobby(lobby_name);
+
+    const playerCount = document.createElement('span');
+    playerCount.innerText = ` ${player_count}/4`;
+    li.appendChild(playerCount);
     element.appendChild(li);
   }
 }

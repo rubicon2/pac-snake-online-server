@@ -10,6 +10,17 @@ const clientMetadata = new Map();
 // lobby_name maps to game object
 const games = new Map();
 
+function packageLobbyListData(map) {
+  const packaged = [];
+  map.forEach((value, key, map) => {
+    packaged.push({
+      lobby_name: key,
+      player_count: value.players.size,
+    });
+  });
+  return packaged;
+}
+
 // app.listen() returns a nodejs httpServer, which wss can piggyback on the same port.
 function gameServer(app, port) {
   const wss = new WebSocketServer({ server: app.listen(port) });
@@ -88,11 +99,23 @@ function gameServer(app, port) {
               clientMetadata.get(ws).lobby = lobby;
               lobby.addPlayer(ws);
               console.log(`Player: ${id} joined game: ${lobby_name}`);
+
               // Send message to client about their amazing success.
               ws.send(JSON.stringify({ type: 'joined_lobby', lobby_name }));
+
+              // Send updated list to all clients.
+              sendLobbyListUpdate(games);
             } else {
               console.log('Player could not join game');
               // Send message to client about their hideous failure.
+              if (lobby.players.size >= 4) {
+                ws.send(
+                  JSON.stringify({
+                    type: 'message_received',
+                    message: `Could not join lobby: ${lobby_name} as it is already full`,
+                  }),
+                );
+              }
             }
           } else {
             // Send message to client saying lobby not found.
@@ -111,6 +134,8 @@ function gameServer(app, port) {
                 type: 'left_lobby',
               }),
             );
+
+            sendLobbyListUpdate(games);
           }
         }
 
@@ -143,8 +168,7 @@ function gameServer(app, port) {
     ws.send(
       JSON.stringify({
         type: 'lobby_list_updated',
-        // Convert map into array of keys.
-        lobbies: [...games.keys()],
+        lobbies: packageLobbyListData(games),
       }),
     );
   });
@@ -161,7 +185,7 @@ function gameServer(app, port) {
     sendToAllClients({
       type: 'lobby_list_updated',
       // Convert map into array of keys.
-      lobbies: [...games.keys()],
+      lobbies: packageLobbyListData(games),
     });
   }
 
