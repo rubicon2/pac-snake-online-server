@@ -65,12 +65,20 @@ class Game {
     this.onGameStateChange = onGameStateChange;
   }
 
+  packagePlayerData() {
+    const packaged = {};
+    this.#players.forEach((value, key, map) => {
+      packaged[key] = value;
+    });
+    return packaged;
+  }
+
   // For sending only the necessary data over websockets.
   packageGameData() {
     return {
       state: this.#state,
-      // Use the array'd version of players instead of the set, which cannot be stringified.
-      players: this.players,
+      // Use the array'd version of players instead of the map, which cannot be stringified.
+      players: this.packagePlayerData(),
       currentRound: this.#currentRound,
     };
   }
