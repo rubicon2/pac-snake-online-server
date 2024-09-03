@@ -187,10 +187,17 @@ function gameServer(app, port) {
   }
 
   function sendGameUpdate(game) {
-    // In the future, send only to clients associated with this particular game, not ALL of them.
-    sendToAllClients({
-      type: 'game_updated',
-      game_state: game.packageGameData(),
+    const game_state = game.packageGameData();
+    wss.clients.forEach((client) => {
+      const { id } = clientMetadata.get(client);
+      if (game.players.has(id)) {
+        client.send(
+          JSON.stringify({
+            type: 'game_updated',
+            game_state,
+          }),
+        );
+      }
     });
   }
 
