@@ -55,6 +55,7 @@ class Game {
   }
 
   get allPlayersAreReady() {
+    if (this.#players.size === 0) return false;
     const allPlayers = this.#players.values();
     for (const player of allPlayers) {
       if (!player.ready) return false;
