@@ -184,6 +184,7 @@ function gameServer(app, port) {
         case 'player_ready_changed': {
           const { id } = clientMetadata.get(ws);
           clientMetadata.get(ws).lobby.setPlayerReady(id, data.ready);
+          sendLobbyListUpdate(games);
           break;
         }
 
