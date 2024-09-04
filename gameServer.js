@@ -187,6 +187,24 @@ function gameServer(app, port) {
           break;
         }
 
+        case 'close_lobby_request': {
+          const { lobby_name } = data;
+          if (games.has(lobby_name)) {
+            const lobby = games.get(lobby_name);
+            if (lobby.players.size === 0) {
+              games.delete(lobby_name);
+              ws.send(
+                JSON.stringify({
+                  type: 'message_received',
+                  message: `Lobby closed by ${clientMetadata.get(ws).name}: ${lobby_name}`,
+                }),
+              );
+              sendLobbyListUpdate(games);
+            }
+          }
+          break;
+        }
+
         case 'player_ready_changed': {
           const { id } = clientMetadata.get(ws);
           clientMetadata.get(ws).lobby.setPlayerReady(id, data.ready);

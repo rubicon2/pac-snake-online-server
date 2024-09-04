@@ -138,6 +138,11 @@ function refreshLobbyListItems(element, lobbies) {
     playerCount.innerText = ` ${player_count}/4`;
     li.appendChild(playerCount);
 
+    const closeButton = document.createElement('button');
+    closeButton.innerText = 'Close';
+    closeButton.onclick = () => closeLobby(lobby_name);
+    li.appendChild(closeButton);
+
     if (players.length > 0) li.appendChild(createLobbyPlayerList(players));
 
     element.appendChild(li);
@@ -178,6 +183,10 @@ function joinLobby(lobby_name) {
 
 function leaveLobby() {
   socket.send(JSON.stringify({ type: 'player_leave_lobby_request' }));
+}
+
+function closeLobby(lobby_name) {
+  socket.send(JSON.stringify({ type: 'close_lobby_request', lobby_name }));
 }
 
 function playerReady() {
