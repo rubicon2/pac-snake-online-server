@@ -4,9 +4,9 @@ const Game = require('./game/game');
 
 const MAX_GAMES = process.env.MAX_GAMES || 4;
 
-// ws object maps to what lobby_name they are associated with
+// ws object maps to: time_connected, id, name, lobby_name, which can be used to find the game from the games map.
 const clientMetadata = new Map();
-// lobby_name maps to game object
+// lobby_name maps to game object.
 const games = new Map();
 
 function packageLobbyListData(map) {
@@ -215,7 +215,6 @@ function gameServer(app, port) {
   function sendLobbyListUpdate(games) {
     sendToAllClients({
       type: 'lobby_list_updated',
-      // Convert map into array of keys.
       lobbies: packageLobbyListData(games),
     });
   }
