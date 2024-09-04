@@ -1,6 +1,5 @@
 const WebSocket = require('ws');
 const { WebSocketServer } = require('ws');
-const Player = require('./game/player');
 const Game = require('./game/game');
 
 const MAX_GAMES = process.env.MAX_GAMES || 4;
@@ -52,7 +51,6 @@ function gameServer(app, port) {
             clientMetadata.set(ws, {
               id: uuid,
               time_connected: Date.now(),
-              player: new Player(),
               name: name || 'Mr. Nobody',
               lobby: null,
             });
