@@ -68,12 +68,12 @@ socket.onmessage = (event) => {
     }
 
     case 'joined_lobby': {
-      currentLobbyElement.innerText = `You're in: ${json.lobby_name}`;
+      refreshLobbyHeader(currentLobbyElement, json.lobby_name);
       break;
     }
 
     case 'left_lobby': {
-      currentLobbyElement.innerText = `You're in the lobby list`;
+      refreshLobbyHeader(currentLobbyElement, 'the lobby list');
       break;
     }
 
@@ -110,6 +110,13 @@ function createCurrentLobbyHeader(currentLobby) {
   h2.id = 'current-lobby';
   h2.innerText = currentLobby;
   return h2;
+}
+
+function refreshLobbyHeader(element, lobbyName) {
+  element.innerText = "You're in: ";
+  const strong = document.createElement('strong');
+  strong.innerText = lobbyName;
+  element.appendChild(strong);
 }
 
 function refreshLobbyListItems(element, lobbies) {
