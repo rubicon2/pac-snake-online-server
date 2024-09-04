@@ -10,9 +10,20 @@
   <body>
     <h1>Pac-Snake Online</h1>
     <h2 id="current-lobby">You're in the lobby list</h2>
+    <h2 id="client-name"></h2>
     <button type="button" onClick="playerReady()">Ready</button>
     <button type="button" onClick="playerNotReady()">Not Ready</button>
     <button type="button" onClick="leaveLobby()">Leave Lobby</button>
+    <form onsubmit="requestNameChange(event)">
+      <label for="client-name">Player name:</label>
+      <input
+        type="text"
+        id="client-name"
+        name="client_name"
+        autocomplete="off"
+      />
+      <button type="submit">Set Name</button>
+    </form>
     <form onsubmit="requestNewLobby(event)">
       <label for="lobby-name">Lobby name:</label>
       <input type="text" id="lobby=name" name="lobby_name" />

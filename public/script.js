@@ -3,6 +3,7 @@ const socket = new WebSocket('ws://localhost:8080');
 const uuid = self.crypto.randomUUID();
 
 let currentLobbyElement = document.getElementById('current-lobby');
+const clientNameElement = document.getElementById('client-name');
 let lobbyListElement = document.getElementById('lobby-list');
 const messagesElement = document.getElementById('messages');
 
@@ -76,6 +77,11 @@ socket.onmessage = (event) => {
       break;
     }
 
+    case 'name_updated': {
+      clientNameElement.innerText = `Hey ${json.client_name}!`;
+      break;
+    }
+
     case 'game_updated': {
       console.log('Game state updated: ', json.game_state);
       // Draw game on screen or whatever.
@@ -125,6 +131,14 @@ function refreshLobbyListItems(element, lobbies) {
     li.appendChild(playerCount);
     element.appendChild(li);
   }
+}
+
+function requestNameChange(event) {
+  event.preventDefault();
+  const { client_name } = Object.fromEntries(
+    new FormData(event.currentTarget).entries(),
+  );
+  socket.send(JSON.stringify({ type: 'name_change_requested', client_name }));
 }
 
 function requestNewLobby(event) {

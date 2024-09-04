@@ -32,12 +32,13 @@ function gameServer(app, port) {
 
       switch (type) {
         case 'opened': {
-          const { uuid } = data;
+          const { uuid, name } = data;
           if (!clientMetadata.has(ws)) {
             clientMetadata.set(ws, {
               id: uuid,
               time_connected: Date.now(),
               player: new Player(),
+              name: name || 'Mr. Nobody',
               lobby: null,
             });
             console.log('Client connected via websockets: ', uuid);
@@ -51,6 +52,19 @@ function gameServer(app, port) {
             clientMetadata.delete(ws);
             console.log('Client disconnected via websockets: ', uuid);
           }
+          break;
+        }
+
+        case 'name_change_requested': {
+          const { client_name } = data;
+          clientMetadata.get(ws).name = client_name;
+          ws.send(
+            JSON.stringify({
+              type: 'name_updated',
+              client_name,
+            }),
+          );
+          sendLobbyListUpdate(games);
           break;
         }
 
