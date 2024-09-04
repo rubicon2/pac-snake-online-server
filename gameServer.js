@@ -224,14 +224,16 @@ function gameServer(app, port) {
   function sendGameUpdateToPlayers(game) {
     const game_state = game.packageGameData();
     wss.clients.forEach((client) => {
-      const { id } = clientMetadata.get(client);
-      if (game.players.has(id)) {
-        client.send(
-          JSON.stringify({
-            type: 'game_updated',
-            game_state,
-          }),
-        );
+      if (client.readyState === WebSocket.OPEN) {
+        const { id } = clientMetadata.get(client);
+        if (game.players.has(id)) {
+          client.send(
+            JSON.stringify({
+              type: 'game_updated',
+              game_state,
+            }),
+          );
+        }
       }
     });
   }
