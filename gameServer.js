@@ -108,7 +108,7 @@ function gameServer(app, port) {
             console.log(
               `New lobby created by ${clientMetadata.get(ws).id}: ${lobby_name}`,
             );
-            games.set(lobby_name, new Game(sendGameUpdate));
+            games.set(lobby_name, new Game(sendGameUpdateToPlayers));
             ws.send(
               JSON.stringify({
                 type: 'message_received',
@@ -220,7 +220,7 @@ function gameServer(app, port) {
     });
   }
 
-  function sendGameUpdate(game) {
+  function sendGameUpdateToPlayers(game) {
     const game_state = game.packageGameData();
     wss.clients.forEach((client) => {
       const { id } = clientMetadata.get(client);
