@@ -62,7 +62,14 @@ function gameServer(app, port) {
         case 'closed': {
           const { uuid } = data;
           if (clientMetadata.has(ws)) {
+            const { id, lobby: lobby_name } = clientMetadata.get(ws);
+            const lobby = games.get(lobby_name);
+            lobby.removePlayer(id);
             clientMetadata.delete(ws);
+
+            if (lobby.allPlayersAreReady) lobby.state = 'running';
+            sendLobbyListUpdate(games);
+
             console.log('Client disconnected via websockets: ', uuid);
           }
           break;
