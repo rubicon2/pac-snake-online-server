@@ -106,14 +106,11 @@ function gameServer(app, port) {
               }),
             );
           } else {
-            console.log(
-              `New lobby created by ${clientMetadata.get(ws).id}: ${lobby_name}`,
-            );
             games.set(lobby_name, new Game(sendGameUpdateToPlayers));
             ws.send(
               JSON.stringify({
                 type: 'message_received',
-                message: `New lobby was created: ${lobby_name}`,
+                message: `New lobby was created by ${clientMetadata.get(ws).name}: ${lobby_name}`,
               }),
             );
             sendLobbyListUpdate(games);
