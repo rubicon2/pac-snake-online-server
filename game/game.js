@@ -35,6 +35,9 @@ class Game {
     this.#players.delete(id);
     this.onGameStateChange(this);
   }
+  hasPlayer(id) {
+    return this.#players.has(id);
+  }
   setPlayerReady(id, isReady) {
     if (this.#players.has(id)) {
       this.#players.get(id).ready = isReady;
