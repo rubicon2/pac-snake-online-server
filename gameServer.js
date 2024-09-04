@@ -107,12 +107,14 @@ function gameServer(app, port) {
             );
           } else {
             games.set(lobby_name, new Game(sendGameUpdateToPlayers));
+            const message = `New lobby was created by ${clientMetadata.get(ws).name}: ${lobby_name}`;
             ws.send(
               JSON.stringify({
                 type: 'message_received',
-                message: `New lobby was created by ${clientMetadata.get(ws).name}: ${lobby_name}`,
+                message,
               }),
             );
+            console.log(message);
             sendLobbyListUpdate(games);
           }
           break;
@@ -190,13 +192,28 @@ function gameServer(app, port) {
             const lobby = games.get(lobby_name);
             if (lobby.players.size === 0) {
               games.delete(lobby_name);
+              const message = `Lobby closed by ${clientMetadata.get(ws).name}: ${lobby_name}`;
               ws.send(
                 JSON.stringify({
                   type: 'message_received',
-                  message: `Lobby closed by ${clientMetadata.get(ws).name}: ${lobby_name}`,
+                  message,
                 }),
               );
+              console.log(message);
               sendLobbyListUpdate(games);
+            } else {
+              let reason = '';
+              if (lobby.state !== 'lobby') {
+                reason = 'the game is already running';
+              } else if (lobby.players.size > 0) {
+                reason = 'there are still players in the lobby';
+              }
+              ws.send(
+                JSON.stringify({
+                  type: 'message_received',
+                  message: `Cannot close lobby: ${lobby_name} as ${reason}`,
+                }),
+              );
             }
           }
           break;
