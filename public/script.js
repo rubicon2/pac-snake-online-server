@@ -132,11 +132,15 @@ function refreshLobbyListItems(element, lobbies) {
     const { lobby_name, player_count, players } = lobby;
     const li = document.createElement('li');
     li.innerText = lobby_name;
-    li.onclick = () => joinLobby(lobby_name);
 
     const playerCount = document.createElement('span');
     playerCount.innerText = ` ${player_count}/4`;
     li.appendChild(playerCount);
+
+    const joinButton = document.createElement('button');
+    joinButton.innerText = 'Join';
+    joinButton.onclick = () => joinLobby(lobby_name);
+    li.appendChild(joinButton);
 
     const closeButton = document.createElement('button');
     closeButton.innerText = 'Close';
