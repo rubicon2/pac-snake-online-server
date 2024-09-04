@@ -1,5 +1,6 @@
 const WebSocket = require('ws');
 const { WebSocketServer } = require('ws');
+const validator = require('validator');
 const Game = require('./game/game');
 
 const MAX_GAMES = process.env.MAX_GAMES || 4;
@@ -76,7 +77,7 @@ function gameServer(app, port) {
         }
 
         case 'name_change_requested': {
-          const { client_name } = data;
+          const client_name = validator.escape(data.client_name);
           clientMetadata.get(ws).name = client_name;
           ws.send(
             JSON.stringify({
@@ -89,7 +90,7 @@ function gameServer(app, port) {
         }
 
         case 'new_lobby_requested': {
-          const { lobby_name } = data;
+          const lobby_name = validator.escape(data.lobby_name);
           if (games.size >= MAX_GAMES) {
             ws.send(
               JSON.stringify({

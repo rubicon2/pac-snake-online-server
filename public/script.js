@@ -1,3 +1,4 @@
+// import DOMPurify from '/libs/purify.min.js';
 const socket = new WebSocket('ws://localhost:8080');
 
 const uuid = self.crypto.randomUUID();
@@ -78,7 +79,7 @@ socket.onmessage = (event) => {
     }
 
     case 'name_updated': {
-      clientNameElement.innerText = `Hey ${json.client_name}!`;
+      clientNameElement.textContent = `Hey, ${validator.escape(json.client_name)}!`;
       break;
     }
 
@@ -108,14 +109,14 @@ function createMessage(message) {
 function createCurrentLobbyHeader(currentLobby) {
   const h2 = document.createElement('h2');
   h2.id = 'current-lobby';
-  h2.innerText = currentLobby;
+  h2.innerText = validator.escape(currentLobby);
   return h2;
 }
 
 function refreshLobbyHeader(element, lobbyName) {
   element.innerText = "You're in: ";
   const strong = document.createElement('strong');
-  strong.innerText = lobbyName;
+  strong.innerText = validator.escape(lobbyName);
   element.appendChild(strong);
 }
 
