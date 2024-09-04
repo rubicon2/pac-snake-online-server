@@ -159,7 +159,12 @@ function gameServer(app, port) {
               }
             }
           } else {
-            // Send message to client saying lobby not found.
+            ws.send(
+              JSON.stringify({
+                type: 'message_received',
+                message: `Could not join lobby: ${lobby_name} as it does not exist`,
+              }),
+            );
           }
           break;
         }
