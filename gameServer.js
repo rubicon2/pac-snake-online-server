@@ -175,6 +175,7 @@ function gameServer(app, port) {
               }),
             );
 
+            if (lobby.allPlayersAreReady) lobby.state = 'running';
             sendLobbyListUpdate(games);
           }
           break;
