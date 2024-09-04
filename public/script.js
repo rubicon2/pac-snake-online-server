@@ -121,7 +121,7 @@ function refreshLobbyListItems(element, lobbies) {
 
   // Now make the new ones.
   for (const lobby of lobbies) {
-    const { lobby_name, player_count } = lobby;
+    const { lobby_name, player_count, players } = lobby;
     const li = document.createElement('li');
     li.innerText = lobby_name;
     li.onclick = () => joinLobby(lobby_name);
@@ -129,8 +129,21 @@ function refreshLobbyListItems(element, lobbies) {
     const playerCount = document.createElement('span');
     playerCount.innerText = ` ${player_count}/4`;
     li.appendChild(playerCount);
+
+    if (players.length > 0) li.appendChild(createLobbyPlayerList(players));
+
     element.appendChild(li);
   }
+}
+
+function createLobbyPlayerList(players) {
+  const ul = document.createElement('ul');
+  for (const player of players) {
+    const li = document.createElement('li');
+    li.innerText = `${player.name} - ${player.ready ? 'READY' : 'NOT READY'}`;
+    ul.appendChild(li);
+  }
+  return ul;
 }
 
 function requestNameChange(event) {

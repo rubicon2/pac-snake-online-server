@@ -13,9 +13,24 @@ const games = new Map();
 function packageLobbyListData(map) {
   const packaged = [];
   map.forEach((value, key, map) => {
+    const players = [...clientMetadata.values()]
+      .filter((meta) => {
+        if (value.hasPlayer(meta.id)) {
+          return meta;
+        }
+      })
+      .map((meta) => {
+        return {
+          name: meta.name,
+          ready: value.players.get(meta.id).ready,
+        };
+      });
+
     packaged.push({
       lobby_name: key,
       player_count: value.players.size,
+      // How to easily get player names? I think my data structure/organisation here sucks. This should be easy, without having to cycle through all clients.
+      players,
     });
   });
   return packaged;
