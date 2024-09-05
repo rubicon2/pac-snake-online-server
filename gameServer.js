@@ -188,6 +188,19 @@ function gameServer(app, port) {
           }
           break;
         }
+
+        case 'player_direction_changed': {
+          try {
+            const { id, lobby: lobby_name } = clientMetadata.get(ws);
+            if (lobby_name) {
+              const lobby = LobbyManager.get(lobby_name);
+              lobby.players.get(id).handleDirection(data.direction);
+            }
+          } catch (error) {
+            reportError(wss.clients, error);
+          }
+          break;
+        }
       }
     });
 
