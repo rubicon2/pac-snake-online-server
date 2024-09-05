@@ -250,8 +250,7 @@ function sendGameStartEventToPlayers(game) {
 }
 
 function sendGameUpdateToPlayers(game) {
-  const clients = game.clients;
-  sendToClients(clients, {
+  sendToClients(game.clients, {
     type: 'game_updated',
     game_state: game.packageData(),
   });
