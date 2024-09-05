@@ -15,7 +15,7 @@ class LobbyManager {
 
   // handleGameUpdate will be passed to the game instance, and will be called when the game state is updated.
   // So when gameState is updated, the state will be passed back up and sent over websockets to the clients.
-  add(name, handleGameUpdate) {
+  add(name, handleGameUpdate, handleGameStart, handleGameEnd) {
     if (this.#lobbies.size >= this.#maxLobbies) {
       throw new Error(
         'Cannot create new lobby: the maximum number of lobbies are already open.',
@@ -28,7 +28,10 @@ class LobbyManager {
       );
     }
 
-    this.#lobbies.set(name, new Game(handleGameUpdate));
+    this.#lobbies.set(
+      name,
+      new Game(handleGameUpdate, handleGameStart, handleGameEnd),
+    );
   }
 
   delete(name) {
