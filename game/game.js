@@ -8,26 +8,24 @@ class Game {
   get state() {
     return this.#state;
   }
-  set state(value) {
-    this.#state = value;
-    // If running, kick off the update loop.
-    if (value === 'running') this.update();
-    // Invoke callback!
-    this.onGameStateChange(this);
-  }
 
   // Map client unique id -> player object
   #players = new Map();
+  // For updating player inputs, etc.
   get players() {
     return this.#players;
+  }
+  // For getting list of clients connected to this game, and sending updates over websocket.
+  get clients() {
+    return [...this.#players.values()].map((player) => player.ws);
   }
   playerCanJoin(id) {
     return this.#players.size < 4 && !this.#players.has(id);
   }
-  addPlayer(id) {
+  addPlayer(id, name, ws) {
     // Server should check before trying to add, but just in case.
     if (this.#state === 'lobby' && this.playerCanJoin(id)) {
-      this.#players.set(id, new Player());
+      this.#players.set(id, new Player(name, ws));
       this.onGameStateChange(this);
     }
   }
@@ -41,12 +39,7 @@ class Game {
   setPlayerReady(id, isReady) {
     if (this.#players.has(id)) {
       this.#players.get(id).ready = isReady;
-      if (this.allPlayersAreReady) {
-        console.log('all players ready!');
-        this.state = 'running';
-      } else {
-        this.onGameStateChange(this);
-      }
+      this.onGameStateChange(this);
     }
   }
 
@@ -67,7 +60,7 @@ class Game {
   get currentRound() {
     return this.#currentRound;
   }
-  resetRound() {
+  resetGame() {
     this.#currentRound = 0;
     this.onGameStateChange(this);
   }
@@ -76,20 +69,22 @@ class Game {
     this.onGameStateChange(this);
   }
 
-  constructor(onGameStateChange) {
+  constructor(onGameStateChange, onGameStart, onGameEnd) {
     this.onGameStateChange = onGameStateChange;
+    this.onGameStart = onGameStart;
+    this.onGameEnd = onGameEnd;
   }
 
   packagePlayerData() {
     const packaged = {};
-    this.#players.forEach((value, key, map) => {
-      packaged[key] = value;
+    this.#players.forEach((player, id, map) => {
+      packaged[id] = player.packageData();
     });
     return packaged;
   }
 
   // For sending only the necessary data over websockets.
-  packageGameData() {
+  packageData() {
     return {
       state: this.#state,
       // Use the array'd version of players instead of the map, which cannot be stringified.
@@ -98,10 +93,21 @@ class Game {
     };
   }
 
+  startGame() {
+    // this.#state = 'running';
+    console.log('Game started!');
+    if (this.onGameStart) this.onGameStart(this);
+  }
+
+  endGame() {
+    this.#state = 'lobby';
+    if (this.onGameEnd) this.onGameEnd(this);
+  }
+
   update() {
     switch (this.#state) {
       case 'running': {
-        this.onGameStateChange(this);
+        if (this.onGameStateChange) this.onGameStateChange(this);
         clearTimeout(this.#updateTimeout);
         this.#updateTimeout = setTimeout(this.update.bind(this), 1000);
       }

@@ -1,44 +1,19 @@
-const WebSocket = require('ws');
 const { WebSocketServer } = require('ws');
 const validator = require('validator');
-const Game = require('./game/game');
+
+const LobbyManager = require('./lobbyManager');
+const { sendToClients } = require('./wsUtils');
 
 const MAX_GAMES = process.env.MAX_GAMES || 4;
 
 // ws object maps to: time_connected, id, name, lobby_name, which can be used to find the game from the games map.
 const clientMetadata = new Map();
-// lobby_name maps to game object.
-const games = new Map();
-
-function packageLobbyListData(map) {
-  const packaged = [];
-  map.forEach((value, key, map) => {
-    const players = [...clientMetadata.values()]
-      .filter((meta) => {
-        if (value.hasPlayer(meta.id)) {
-          return meta;
-        }
-      })
-      .map((meta) => {
-        return {
-          name: meta.name,
-          ready: value.players.get(meta.id).ready,
-        };
-      });
-
-    packaged.push({
-      lobby_name: key,
-      player_count: value.players.size,
-      // How to easily get player names? I think my data structure/organisation here sucks. This should be easy, without having to cycle through all clients.
-      players,
-    });
-  });
-  return packaged;
-}
 
 // app.listen() returns a nodejs httpServer, which wss can piggyback on the same port.
 function gameServer(app, port) {
   const wss = new WebSocketServer({ server: app.listen(port) });
+  LobbyManager.setMaxLobbies(MAX_GAMES);
+
   wss.on('connection', (ws) => {
     ws.on('error', console.error);
 
@@ -63,15 +38,22 @@ function gameServer(app, port) {
         case 'closed': {
           const { uuid } = data;
           if (clientMetadata.has(ws)) {
-            const { id, lobby: lobby_name } = clientMetadata.get(ws);
-            const lobby = games.get(lobby_name);
-            if (lobby) {
-              lobby.removePlayer(id);
-              clientMetadata.delete(ws);
-              if (lobby.allPlayersAreReady) lobby.state = 'running';
-              sendLobbyListUpdate(games);
+            try {
+              const { id, lobby: lobby_name } = clientMetadata.get(ws);
+              const lobby = LobbyManager.get(lobby_name);
+              if (lobby) {
+                lobby.removePlayer(id);
+                clientMetadata.delete(ws);
+                if (lobby.allPlayersAreReady) lobby.startGame();
+                sendToClients(wss.clients, {
+                  type: 'lobby_list_updated',
+                  lobbies: LobbyManager.packageData(),
+                });
+              }
+              console.log('Client disconnected via websockets: ', uuid);
+            } catch (error) {
+              reportError(wss.clients, error);
             }
-            console.log('Client disconnected via websockets: ', uuid);
           }
           break;
         }
@@ -85,28 +67,22 @@ function gameServer(app, port) {
               client_name,
             }),
           );
-          sendLobbyListUpdate(games);
+          sendToClients(wss.clients, {
+            type: 'lobby_list_updated',
+            lobbies: LobbyManager.packageData(),
+          });
           break;
         }
 
         case 'new_lobby_requested': {
           const lobby_name = validator.escape(data.lobby_name);
-          if (games.size >= MAX_GAMES) {
-            ws.send(
-              JSON.stringify({
-                type: 'message_received',
-                message: 'The maximum number of lobbies are already open.',
-              }),
-            );
-          } else if (games.has(lobby_name)) {
-            ws.send(
-              JSON.stringify({
-                type: 'message_received',
-                message: 'Lobby with that name already exists.',
-              }),
-            );
-          } else {
-            games.set(lobby_name, new Game(sendGameUpdateToPlayers));
+
+          try {
+            LobbyManager.add(lobby_name, sendGameUpdateToPlayers);
+            sendToClients(wss.clients, {
+              type: 'lobby_list_updated',
+              lobbies: LobbyManager.packageData(),
+            });
             const message = `New lobby was created by ${clientMetadata.get(ws).name}: ${lobby_name}`;
             ws.send(
               JSON.stringify({
@@ -115,63 +91,47 @@ function gameServer(app, port) {
               }),
             );
             console.log(message);
-            sendLobbyListUpdate(games);
+          } catch (error) {
+            reportError(wss.clients, error);
           }
           break;
         }
 
         case 'player_join_lobby_request': {
           const { lobby_name } = data;
-          if (games.has(lobby_name)) {
+
+          try {
+            const { id, name, lobby: previousLobby } = clientMetadata.get(ws);
             // If player is already in a lobby, remove them.
-            const { id, lobby: previousLobby } = clientMetadata.get(ws);
-            if (previousLobby) previousLobby.removePlayer(id);
-
-            // Now join the new lobby.
-            const lobby = games.get(lobby_name);
-            if (lobby.state === 'lobby' && lobby.playerCanJoin(ws)) {
-              clientMetadata.get(ws).lobby = lobby;
-              lobby.addPlayer(id);
+            if (previousLobby) LobbyManager.get(previousLobby).removePlayer(id);
+            const newLobby = LobbyManager.get(lobby_name);
+            // Now join the requested lobby.
+            if (newLobby.state === 'lobby' && newLobby.playerCanJoin(id)) {
+              clientMetadata.get(ws).lobby = lobby_name;
+              newLobby.addPlayer(id, name, ws);
               console.log(`Player: ${id} joined game: ${lobby_name}`);
-
-              // Send message to client about their amazing success.
               ws.send(JSON.stringify({ type: 'joined_lobby', lobby_name }));
-
-              // Send updated list to all clients.
-              sendLobbyListUpdate(games);
-            } else {
-              // Send message to client about their hideous failure.
-              if (lobby.players.size >= 4) {
-                ws.send(
-                  JSON.stringify({
-                    type: 'message_received',
-                    message: `Could not join lobby: ${lobby_name} as it is already full`,
-                  }),
-                );
-              } else if (lobby.state !== 'lobby') {
-                ws.send(
-                  JSON.stringify({
-                    type: 'message_received',
-                    message: `Could not join lobby: ${lobby_name} as the game is already running`,
-                  }),
-                );
-              }
+              sendToClients(wss.clients, {
+                type: 'lobby_list_updated',
+                lobbies: LobbyManager.packageData(),
+              });
             }
-          } else {
-            ws.send(
-              JSON.stringify({
-                type: 'message_received',
-                message: `Could not join lobby: ${lobby_name} as it does not exist`,
-              }),
-            );
+          } catch (error) {
+            reportError(wss.clients, error);
           }
           break;
         }
 
         case 'player_leave_lobby_request': {
-          const { id, lobby } = clientMetadata.get(ws);
+          const { id, lobby: lobby_name } = clientMetadata.get(ws);
           clientMetadata.get(ws).lobby = null;
-          if (lobby) {
+
+          try {
+            if (!lobby_name)
+              throw new Error(
+                `Player: ${id} tried to leave lobby when not in a lobby.`,
+              );
+            const lobby = LobbyManager.get(lobby_name);
             lobby.removePlayer(id);
             console.log(`Player: ${id} left game`);
             ws.send(
@@ -179,104 +139,84 @@ function gameServer(app, port) {
                 type: 'left_lobby',
               }),
             );
-
-            if (lobby.allPlayersAreReady) lobby.state = 'running';
-            sendLobbyListUpdate(games);
+            if (lobby.allPlayersAreReady) lobby.startGame();
+            sendToClients(wss.clients, {
+              type: 'lobby_list_updated',
+              lobbies: LobbyManager.packageData(),
+            });
+          } catch (error) {
+            reportError(wss.clients, error);
           }
           break;
         }
 
         case 'close_lobby_request': {
           const { lobby_name } = data;
-          if (games.has(lobby_name)) {
-            const lobby = games.get(lobby_name);
-            if (lobby.players.size === 0) {
-              games.delete(lobby_name);
-              const message = `Lobby closed by ${clientMetadata.get(ws).name}: ${lobby_name}`;
-              ws.send(
-                JSON.stringify({
-                  type: 'message_received',
-                  message,
-                }),
-              );
-              console.log(message);
-              sendLobbyListUpdate(games);
-            } else {
-              let reason = '';
-              if (lobby.state !== 'lobby') {
-                reason = 'the game is already running';
-              } else if (lobby.players.size > 0) {
-                reason = 'there are still players in the lobby';
-              }
-              ws.send(
-                JSON.stringify({
-                  type: 'message_received',
-                  message: `Cannot close lobby: ${lobby_name} as ${reason}`,
-                }),
-              );
-            }
+
+          try {
+            LobbyManager.delete(lobby_name);
+            const message = `Lobby closed by ${clientMetadata.get(ws).name}: ${lobby_name}`;
+            ws.send(
+              JSON.stringify({
+                type: 'message_received',
+                message,
+              }),
+            );
+            sendToClients(wss.clients, {
+              type: 'lobby_list_updated',
+              lobbies: LobbyManager.packageData(),
+            });
+            console.log(message);
+          } catch (error) {
+            reportError(wss.clients, error);
           }
           break;
         }
 
         case 'player_ready_changed': {
-          const { id } = clientMetadata.get(ws);
-          clientMetadata.get(ws).lobby.setPlayerReady(id, data.ready);
-          sendLobbyListUpdate(games);
-          break;
-        }
-
-        case 'player_direction_changed': {
-          const { direction } = data;
-          // Change direction of player's snake.
-          const { player } = clientMetadata.get(ws);
+          try {
+            const { id, lobby: lobby_name } = clientMetadata.get(ws);
+            const lobby = LobbyManager.get(lobby_name);
+            lobby.setPlayerReady(id, data.ready);
+            if (lobby.allPlayersAreReady) lobby.startGame();
+            sendToClients(wss.clients, {
+              type: 'lobby_list_updated',
+              lobbies: LobbyManager.packageData(),
+            });
+          } catch (error) {
+            reportError(wss.clients, error);
+          }
           break;
         }
       }
     });
 
-    // Send initial list of lobbies.
+    // Send initial list of lobbies to this client.
     ws.send(
       JSON.stringify({
         type: 'lobby_list_updated',
-        lobbies: packageLobbyListData(games),
+        lobbies: LobbyManager.packageData(),
       }),
     );
   });
 
-  function sendToAllClients(data) {
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify(data));
-      }
-    });
-  }
-
-  function sendLobbyListUpdate(games) {
-    sendToAllClients({
-      type: 'lobby_list_updated',
-      lobbies: packageLobbyListData(games),
-    });
-  }
-
-  function sendGameUpdateToPlayers(game) {
-    const game_state = game.packageGameData();
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        const { id } = clientMetadata.get(client);
-        if (game.players.has(id)) {
-          client.send(
-            JSON.stringify({
-              type: 'game_updated',
-              game_state,
-            }),
-          );
-        }
-      }
-    });
-  }
-
   return wss;
+}
+
+function reportError(clients, error) {
+  console.log(error.stack);
+  sendToClients(clients, {
+    type: 'message_received',
+    message: error.message,
+  });
+}
+
+function sendGameUpdateToPlayers(game) {
+  const clients = game.clients;
+  sendToClients(clients, {
+    type: 'game_updated',
+    game_state: game.packageData(),
+  });
 }
 
 module.exports = gameServer;
