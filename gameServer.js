@@ -78,7 +78,12 @@ function gameServer(app, port) {
           const lobby_name = validator.escape(data.lobby_name);
 
           try {
-            LobbyManager.add(lobby_name, sendGameUpdateToPlayers);
+            LobbyManager.add(
+              lobby_name,
+              sendGameUpdateToPlayers,
+              sendGameStartEventToPlayers,
+              sendGameEndEventToPlayers,
+            );
             sendToClients(wss.clients, {
               type: 'lobby_list_updated',
               lobbies: LobbyManager.packageData(),
@@ -227,6 +232,20 @@ function reportError(clients, error) {
   sendToClients(clients, {
     type: 'message_received',
     message: error.message,
+  });
+}
+
+function sendGameEndEventToPlayers(game) {
+  sendToClients(game.clients, {
+    type: 'game_ended',
+    game_state: game.packageData(),
+  });
+}
+
+function sendGameStartEventToPlayers(game) {
+  sendToClients(game.clients, {
+    type: 'game_started',
+    game_state: game.packageData(),
   });
 }
 
