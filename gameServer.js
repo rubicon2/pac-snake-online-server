@@ -83,14 +83,12 @@ function gameServer(app, port) {
               type: 'lobby_list_updated',
               lobbies: LobbyManager.packageData(),
             });
-            const message = `New lobby was created by ${clientMetadata.get(ws).name}: ${lobby_name}`;
-            ws.send(
-              JSON.stringify({
-                type: 'message_received',
-                message,
-              }),
-            );
+            const message = `New lobby was created by ${clientMetadata.get(ws).name}: ${lobby_name}.`;
             console.log(message);
+            sendToClients(wss.clients, {
+              type: 'message_received',
+              message,
+            });
           } catch (error) {
             reportError(wss.clients, error);
           }
@@ -109,7 +107,12 @@ function gameServer(app, port) {
             if (newLobby.state === 'lobby' && newLobby.playerCanJoin(id)) {
               clientMetadata.get(ws).lobby = lobby_name;
               newLobby.addPlayer(id, name, ws);
-              console.log(`Player: ${id} joined game: ${lobby_name}`);
+              const message = `${name} joined lobby: ${lobby_name}.`;
+              console.log(message);
+              sendToClients(wss.clients, {
+                type: 'message_received',
+                message,
+              });
               ws.send(JSON.stringify({ type: 'joined_lobby', lobby_name }));
               sendToClients(wss.clients, {
                 type: 'lobby_list_updated',
@@ -123,7 +126,7 @@ function gameServer(app, port) {
         }
 
         case 'player_leave_lobby_request': {
-          const { id, lobby: lobby_name } = clientMetadata.get(ws);
+          const { id, name, lobby: lobby_name } = clientMetadata.get(ws);
           clientMetadata.get(ws).lobby = null;
 
           try {
@@ -133,12 +136,17 @@ function gameServer(app, port) {
               );
             const lobby = LobbyManager.get(lobby_name);
             lobby.removePlayer(id);
-            console.log(`Player: ${id} left game`);
             ws.send(
               JSON.stringify({
                 type: 'left_lobby',
               }),
             );
+            const message = `${name} left lobby: ${lobby_name}.`;
+            console.log(message);
+            sendToClients(wss.clients, {
+              type: 'message_received',
+              message,
+            });
             if (lobby.allPlayersAreReady) lobby.startGame();
             sendToClients(wss.clients, {
               type: 'lobby_list_updated',
@@ -155,18 +163,16 @@ function gameServer(app, port) {
 
           try {
             LobbyManager.delete(lobby_name);
-            const message = `Lobby closed by ${clientMetadata.get(ws).name}: ${lobby_name}`;
-            ws.send(
-              JSON.stringify({
-                type: 'message_received',
-                message,
-              }),
-            );
             sendToClients(wss.clients, {
               type: 'lobby_list_updated',
               lobbies: LobbyManager.packageData(),
             });
+            const message = `Lobby closed by ${clientMetadata.get(ws).name}: ${lobby_name}.`;
             console.log(message);
+            sendToClients(wss.clients, {
+              type: 'message_received',
+              message,
+            });
           } catch (error) {
             reportError(wss.clients, error);
           }
