@@ -94,8 +94,6 @@ class Game {
   }
 
   startGame() {
-    // this.#state = 'running';
-    console.log('Game started!');
     if (this.onGameStart) this.onGameStart(this);
     this.#state = 'running';
     this.update();
