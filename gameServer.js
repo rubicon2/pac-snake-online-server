@@ -224,7 +224,7 @@ function gameServer(app, port) {
             const { id, lobby: lobby_name } = clientMetadata.get(ws);
             if (lobby_name) {
               const lobby = LobbyManager.get(lobby_name);
-              lobby.players.get(id).handleDirection(data.direction);
+              lobby.players.get(id).snake.handleInput(data.direction);
             }
           } catch (error) {
             reportError(wss.clients, error);

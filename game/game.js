@@ -1,17 +1,6 @@
-const { loopInt } = require('loop-range');
 const Player = require('./player');
 const Snake = require('./snake');
-
-const SNAKE_SETUP_DATA = [
-  { x: 0, y: 0, direction: 'up' },
-  { x: 9, y: 9, direction: 'down' },
-  { x: 9, y: 0, direction: 'left' },
-  { x: 0, y: 9, direction: 'right' },
-];
-
-const MIN_POS = 0;
-const MAX_POS = 10;
-const UPDATE_INTERVAL_MS = 1000;
+const { SNAKE_SETUP_DATA, UPDATE_INTERVAL_MS } = require('./data');
 
 class Game {
   #updateTimeout = null;
@@ -142,22 +131,9 @@ class Game {
       const { snake } = player;
       if (!snake.isAlive) continue;
 
-      // Calculate projected position.
-      const { headX, headY, nextMoveDir } = snake;
-      const newX = loopInt(
-        MIN_POS,
-        MAX_POS,
-        headX +
-          1 * (nextMoveDir === 'right' ? 1 : nextMoveDir === 'left' ? -1 : 0),
-      );
-      const newY = loopInt(
-        MIN_POS,
-        MAX_POS,
-        headY +
-          1 * (nextMoveDir === 'up' ? -1 : nextMoveDir === 'down' ? 1 : 0),
-      );
+      const { x: newX, y: newY } = snake.getProjectedPosition();
 
-      // Collision detected for that gorgeous food
+      // Collision detection for that gorgeous food which will at some point be implemented.
 
       // Collision detection for the snakes.
       for (const otherPlayer of playersArray) {
