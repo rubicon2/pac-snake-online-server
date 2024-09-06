@@ -45,6 +45,7 @@ class Game {
   removePlayer(id) {
     this.#players.delete(id);
     this.onGameStateChange(this);
+    if (this.#players.size === 0) this.endGame();
   }
   hasPlayer(id) {
     return this.#players.has(id);
