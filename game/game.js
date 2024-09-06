@@ -176,6 +176,7 @@ class Game {
           this.update.bind(this),
           UPDATE_INTERVAL_MS,
         );
+        break;
       }
     }
   }
