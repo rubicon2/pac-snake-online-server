@@ -3,11 +3,11 @@ class Player {
   constructor(name, ws) {
     this.name = name;
     this.ws = ws;
-    this.direction = 'up';
+    this.snake = null;
   }
 
   handleDirection(direction) {
-    this.direction = direction;
+    this.snake.nextMoveDir = direction;
   }
 
   packageData() {
