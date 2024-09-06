@@ -42,7 +42,6 @@ class Game {
   setPlayerReady(id, isReady) {
     if (this.#players.has(id)) {
       this.#players.get(id).ready = isReady;
-      this.onGameStateChange(this);
     }
   }
 
