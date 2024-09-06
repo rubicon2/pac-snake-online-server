@@ -27,7 +27,7 @@ function gameServer(app, port) {
             clientMetadata.set(ws, {
               id: uuid,
               time_connected: Date.now(),
-              name: name || 'Mr. Nobody',
+              name,
               lobby: null,
             });
             console.log('Client connected via websockets: ', uuid);
@@ -59,18 +59,32 @@ function gameServer(app, port) {
         }
 
         case 'name_change_requested': {
-          const client_name = validator.escape(data.client_name);
-          clientMetadata.get(ws).name = client_name;
-          ws.send(
-            JSON.stringify({
-              type: 'name_updated',
-              client_name,
-            }),
-          );
-          sendToClients(wss.clients, {
-            type: 'lobby_list_updated',
-            lobbies: LobbyManager.packageData(),
-          });
+          try {
+            const trimmed = validator.trim(data.client_name);
+            const client_name = validator.escape(trimmed);
+            if (client_name === '')
+              throw new Error(
+                `Player: ${clientMetadata.get(ws).id}: name rejected as it was blank.`,
+              );
+            clientMetadata.get(ws).name = client_name;
+            // Also update name on player object if this client is in a game.
+            // This is obviously bad. The name should be stored in only one place, not two.
+            const { id, lobby: lobby_name } = clientMetadata.get(ws);
+            if (lobby_name)
+              LobbyManager.get(lobby_name).players.get(id).name = client_name;
+            ws.send(
+              JSON.stringify({
+                type: 'name_updated',
+                client_name,
+              }),
+            );
+            sendToClients(wss.clients, {
+              type: 'lobby_list_updated',
+              lobbies: LobbyManager.packageData(),
+            });
+          } catch (error) {
+            reportError(wss.clients, error);
+          }
           break;
         }
 
@@ -105,6 +119,11 @@ function gameServer(app, port) {
 
           try {
             const { id, name, lobby: previousLobby } = clientMetadata.get(ws);
+            // If player has not set a name, do not allow them to join a lobby.
+            if (!name)
+              throw new Error(
+                `Player: ${id} tried to join a lobby: you must set a name first.`,
+              );
             // If player is already in a lobby, remove them.
             if (previousLobby) LobbyManager.get(previousLobby).removePlayer(id);
             const newLobby = LobbyManager.get(lobby_name);
