@@ -147,7 +147,8 @@ function refreshLobbyListItems(element, lobbies) {
     closeButton.onclick = () => closeLobby(lobby_name);
     li.appendChild(closeButton);
 
-    if (players.length > 0) li.appendChild(createLobbyPlayerList(players));
+    if (Object.keys(players).length > 0)
+      li.appendChild(createLobbyPlayerList(Object.values(players)));
 
     element.appendChild(li);
   }
