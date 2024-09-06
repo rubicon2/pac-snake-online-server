@@ -6,10 +6,6 @@ class Player {
     this.snake = null;
   }
 
-  handleDirection(direction) {
-    this.snake.nextMoveDir = direction;
-  }
-
   packageData() {
     return {
       name: this.name,
