@@ -15,8 +15,25 @@ class Snake {
   }
 
   #createChunks() {
-    // Just do one for now.
-    return [new Chunk(this.headX, this.headY)];
+    const chunks = [];
+    const xMult =
+      this.initialMoveDir === 'left'
+        ? 1
+        : this.initialMoveDir === 'right'
+          ? -1
+          : 0;
+    const yMult =
+      this.initialMoveDir === 'up'
+        ? 1
+        : this.initialMoveDir === 'down'
+          ? -1
+          : 0;
+    for (let i = 0; i < this.startLength; i++) {
+      const x = loopInt(MIN_POS, MAX_POS, this.headX + i * xMult);
+      const y = loopInt(MIN_POS, MAX_POS, this.headY + i * yMult);
+      chunks.push(new Chunk(x, y));
+    }
+    return chunks;
   }
 
   kill() {

@@ -109,10 +109,10 @@ class Game {
   }
 
   #createPlayerSnakes() {
-    for (const player of this.#players.values()) {
-      player.snake = new Snake(0, 0, 3, 'up');
-      // Just do the first snake...
-      break;
+    const players = [...this.#players.values()];
+    for (let i = 0; i < players.length; i++) {
+      const { x, y, direction } = SNAKE_SETUP_DATA[i];
+      players[i].snake = new Snake(x, y, 3, direction);
     }
   }
 
