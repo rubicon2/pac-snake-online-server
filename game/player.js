@@ -10,6 +10,7 @@ class Player {
     return {
       name: this.name,
       ready: this.ready,
+      snake: this.snake ? this.snake.packageData() : null,
     };
   }
 }

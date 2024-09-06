@@ -94,6 +94,16 @@ class Snake {
     this.chunks.unshift(new Chunk(x, y));
     this.lastMoveDir = this.nextMoveDir;
   }
+
+  packageData() {
+    return {
+      headX: this.headX,
+      headY: this.headY,
+      dir: this.lastMoveDir,
+      isAlive: this.isAlive,
+      chunks: this.chunks,
+    };
+  }
 }
 
 class Chunk {
