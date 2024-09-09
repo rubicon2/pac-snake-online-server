@@ -3,10 +3,12 @@ const socket = new WebSocket('ws://localhost:8080');
 
 const uuid = self.crypto.randomUUID();
 
+let pageContentElement = document.getElementById('content');
 let currentLobbyElement = document.getElementById('current-lobby');
 const clientNameElement = document.getElementById('client-name');
 let lobbyListElement = document.getElementById('lobby-list');
 const messagesElement = document.getElementById('messages');
+let gameAreaElement = document.getElementById('game-area');
 
 socket.onopen = () => {
   socket.send(JSON.stringify({ type: 'opened', uuid }));
@@ -83,9 +85,25 @@ socket.onmessage = (event) => {
       break;
     }
 
+    case 'game_started': {
+      // Show the game screen.
+      pageContentElement.remove();
+      pageContentElement = createGamePage(json.game_state);
+      document.body.appendChild(pageContentElement);
+      break;
+    }
+
+    case 'game_ended': {
+      // Show the lobby screen.
+      pageContentElement.remove();
+      pageContentElement = createLobbiesPage();
+      document.body.appendChild(pageContentElement);
+      break;
+    }
+
     case 'game_updated': {
-      console.log('Game state updated: ', json.game_state);
-      // Draw game on screen or whatever.
+      // Update the game display.
+      if (gameAreaElement) refreshGamePage(json.game_state);
       break;
     }
 
@@ -99,6 +117,83 @@ socket.onmessage = (event) => {
     }
   }
 };
+
+function createLobbiesPage() {
+  const div = document.createElement('div');
+  div.id = 'content';
+  div.classList.add('screen-height');
+
+  const h1 = document.createElement('h1');
+  h1.textContent = 'Pac-Snake Online';
+  div.appendChild(h1);
+
+  const h2 = document.createElement('h2');
+  h2.id = 'client-name';
+  div.appendChild(h2);
+
+  const currentLobbyHeader = createCurrentLobbyHeader('default');
+  div.appendChild(currentLobbyHeader);
+
+  const readyButton = document.createElement('button');
+  readyButton.type = 'button';
+  readyButton.onclick = playerReady;
+  readyButton.textContent = 'Ready';
+  div.appendChild(readyButton);
+
+  const notReadyButton = document.createElement('button');
+  notReadyButton.type = 'button';
+  notReadyButton.onclick = playerNotReady;
+  notReadyButton.textContent = 'Not Ready';
+  div.appendChild(notReadyButton);
+
+  const leaveLobbyButton = document.createElement('button');
+  leaveLobbyButton.type = 'button';
+  leaveLobbyButton.onclick = leaveLobby;
+  leaveLobbyButton.textContent = 'Leave Lobby';
+  div.appendChild(leaveLobbyButton);
+
+  return div;
+}
+
+function createGameArea() {
+  const div = document.createElement('div');
+  div.id = 'game-area';
+  return div;
+}
+
+function createGamePage() {
+  const div = document.createElement('div');
+  div.id = 'content';
+  gameAreaElement = createGameArea();
+  div.appendChild(gameAreaElement);
+  return div;
+}
+
+function createSnakeChunk(x, y) {
+  const div = document.createElement('div');
+  div.classList.add('snake-chunk');
+  div.style.left = `${x * 80}px`;
+  div.style.top = `${y * 80}px`;
+  return div;
+}
+
+function refreshGamePage(game_state) {
+  // Remove all existing snake chunks.
+  const existingChunks = gameAreaElement.querySelectorAll('.snake-chunk');
+  for (const chunk of existingChunks) {
+    chunk.remove();
+  }
+
+  // Create new ones.
+  const { state, players, currentRound } = game_state;
+  for (const player of Object.values(players)) {
+    const { chunks } = player.snake;
+    for (const chunk of chunks) {
+      const chunkElement = createSnakeChunk(chunk.x, chunk.y);
+      gameAreaElement.appendChild(chunkElement);
+    }
+  }
+}
 
 function createMessage(message) {
   const li = document.createElement('li');

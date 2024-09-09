@@ -9,28 +9,35 @@
     <title>Pac Snake</title>
   </head>
   <body>
-    <h1>Pac-Snake Online</h1>
-    <h2 id="client-name"></h2>
-    <p id="current-lobby">You're in the <strong>lobby list</strong></p>
-    <button type="button" onClick="playerReady()">Ready</button>
-    <button type="button" onClick="playerNotReady()">Not Ready</button>
-    <button type="button" onClick="leaveLobby()">Leave Lobby</button>
-    <form onsubmit="requestNameChange(event)">
-      <label for="client-name">Player name:</label>
-      <input
-        type="text"
-        id="client-name"
-        name="client_name"
-        autocomplete="off"
-      />
-      <button type="submit">Set Name</button>
-    </form>
-    <form onsubmit="requestNewLobby(event)">
-      <label for="lobby-name">Lobby name:</label>
-      <input type="text" id="lobby-name" name="lobby_name" autocomplete="off" />
-      <button type="submit">Create New Lobby</button>
-    </form>
-    <ul id="lobby-list"></ul>
-    <ul id="messages"></ul>
+    <div id="content" class="screen-height">
+      <h1>Pac-Snake Online</h1>
+      <h2 id="client-name"></h2>
+      <p id="current-lobby">You're in the <strong>lobby list</strong></p>
+      <button type="button" onClick="playerReady()">Ready</button>
+      <button type="button" onClick="playerNotReady()">Not Ready</button>
+      <button type="button" onClick="leaveLobby()">Leave Lobby</button>
+      <form onsubmit="requestNameChange(event)">
+        <label for="client-name">Player name:</label>
+        <input
+          type="text"
+          id="client-name"
+          name="client_name"
+          autocomplete="off"
+        />
+        <button type="submit">Set Name</button>
+      </form>
+      <form onsubmit="requestNewLobby(event)">
+        <label for="lobby-name">Lobby name:</label>
+        <input
+          type="text"
+          id="lobby-name"
+          name="lobby_name"
+          autocomplete="off"
+        />
+        <button type="submit">Create New Lobby</button>
+      </form>
+      <ul id="lobby-list"></ul>
+      <ul id="messages"></ul>
+    </div>
   </body>
 </html>

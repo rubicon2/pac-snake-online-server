@@ -1,3 +1,33 @@
+body {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
 #messages {
   list-style: none;
+}
+
+#content {
+  width: 800px;
+  margin: auto;
+}
+
+.screen-height {
+  height: 100vh;
+}
+
+#game-area {
+  position: relative;
+  background-color: black;
+  width: 800px;
+  height: 800px;
+  margin: auto 0;
+}
+
+.snake-chunk {
+  position: absolute;
+  background-color: yellow;
+  width: 80px;
+  height: 80px;
 }
