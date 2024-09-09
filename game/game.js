@@ -129,17 +129,17 @@ class Game {
       x: foodPickup.x,
       y: foodPickup.y,
     }));
-    const snakePositions = this.snakes.map((snake) => ({
-      x: snake.headX,
-      y: snake.headY,
-    }));
+    // Get chunk arrays from each snake and then concat into a single array.
+    const chunkPositions = this.snakes
+      .map((snake) => snake.chunks)
+      .reduce((all, chunks) => [...all, ...chunks], []);
     const projectedSnakePositions = this.snakes.map((snake) =>
       snake.getProjectedPosition(),
     );
 
     const invalidPositions = [
       ...foodPositions,
-      ...snakePositions,
+      ...chunkPositions,
       ...projectedSnakePositions,
     ];
     let randomPosition = { x: 0, y: 0 };
