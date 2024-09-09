@@ -187,7 +187,8 @@ class Game {
     // Each snake moves sequentially, but it looks simultaneous - this avoids
     // a player getting killed by a tail that moves out of the way on the same update.
     for (const player of playersArray) {
-      player.snake.chunks.pop();
+      const { snake } = player;
+      if (snake.chunks.length >= snake.targetLength) snake.chunks.pop();
     }
 
     for (const player of playersArray) {
