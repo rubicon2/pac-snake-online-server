@@ -44,7 +44,8 @@ function gameServer(app, port) {
               if (lobby) {
                 lobby.removePlayer(id);
                 clientMetadata.delete(ws);
-                if (lobby.allPlayersAreReady) lobby.startGame();
+                if (lobby.state === 'lobby' && lobby.allPlayersAreReady)
+                  lobby.startGame();
                 sendToClients(wss.clients, {
                   type: 'lobby_list_updated',
                   lobbies: LobbyManager.packageData(),
