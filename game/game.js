@@ -111,16 +111,16 @@ class Game {
   }
 
   startGame() {
-    if (this.onGameStart) this.onGameStart(this);
     this.#state = 'running';
     this.#createPlayerSnakes();
+    if (this.onGameStart) this.onGameStart(this);
     this.#spawnFood(SPAWN_FOOD_TIMEOUT_MS);
     this.update();
   }
 
   endGame() {
-    if (this.onGameEnd) this.onGameEnd(this);
     this.#state = 'lobby';
+    if (this.onGameEnd) this.onGameEnd(this);
   }
 
   #getRandomPosition() {

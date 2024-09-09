@@ -90,6 +90,7 @@ socket.onmessage = (event) => {
       pageContentElement.remove();
       pageContentElement = createGamePage(json.game_state);
       document.body.appendChild(pageContentElement);
+      if (gameAreaElement) refreshGamePage(json.game_state);
       break;
     }
 
