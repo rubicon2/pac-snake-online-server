@@ -28,6 +28,10 @@ class LobbyManager {
       );
     }
 
+    if (name === '') {
+      throw new Error('Cannot create new lobby: name required.');
+    }
+
     this.#lobbies.set(
       name,
       new Game(handleGameUpdate, handleGameStart, handleGameEnd),
