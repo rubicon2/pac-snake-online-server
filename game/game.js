@@ -1,9 +1,17 @@
 const Player = require('./player');
 const Snake = require('./snake');
-const { SNAKE_SETUP_DATA, UPDATE_INTERVAL_MS } = require('./data');
+const { loopInt } = require('loop-range');
+const {
+  SNAKE_SETUP_DATA,
+  UPDATE_INTERVAL_MS,
+  MIN_POS,
+  MAX_POS,
+} = require('./data');
+const SPAWN_FOOD_TIMEOUT_MS = 5000;
 
 class Game {
   #updateTimeout = null;
+  #spawnFoodTimeout = null;
 
   // state can be: 'lobby', 'running', 'paused', 'round_over', 'game_over'
   #state = 'lobby';
@@ -20,6 +28,10 @@ class Game {
   // For getting list of clients connected to this game, and sending updates over websocket.
   get clients() {
     return [...this.#players.values()].map((player) => player.ws);
+  }
+  // For getting actual snake objects for all players.
+  get snakes() {
+    return [...this.#players.values()].map((player) => player.snake);
   }
   playerCanJoin(id) {
     return this.#players.size < 4 && !this.#players.has(id);
@@ -58,6 +70,8 @@ class Game {
     return true;
   }
 
+  #foodPickups = [];
+
   #currentRound = 0;
   get currentRound() {
     return this.#currentRound;
@@ -91,6 +105,7 @@ class Game {
       state: this.#state,
       // Use the array'd version of players instead of the map, which cannot be stringified.
       players: this.packagePlayerData(),
+      foodPickups: this.#foodPickups,
       currentRound: this.#currentRound,
     };
   }
@@ -99,12 +114,61 @@ class Game {
     if (this.onGameStart) this.onGameStart(this);
     this.#state = 'running';
     this.#createPlayerSnakes();
+    this.#spawnFood(SPAWN_FOOD_TIMEOUT_MS);
     this.update();
   }
 
   endGame() {
     if (this.onGameEnd) this.onGameEnd(this);
     this.#state = 'lobby';
+  }
+
+  #getRandomPosition() {
+    const foodPositions = this.#foodPickups.map((foodPickup) => ({
+      x: foodPickup.x,
+      y: foodPickup.y,
+    }));
+    const snakePositions = this.snakes.map((snake) => ({
+      x: snake.headX,
+      y: snake.headY,
+    }));
+    const projectedSnakePositions = this.snakes.map((snake) =>
+      snake.getProjectedPosition(),
+    );
+
+    const invalidPositions = [
+      ...foodPositions,
+      ...snakePositions,
+      ...projectedSnakePositions,
+    ];
+    let randomPosition = { x: 0, y: 0 };
+    let isInvalid = true;
+
+    generateRandom: while (isInvalid) {
+      randomPosition = {
+        x: loopInt(MIN_POS, MAX_POS, (MAX_POS - MIN_POS) * Math.random()),
+        y: loopInt(MIN_POS, MAX_POS, (MAX_POS - MIN_POS) * Math.random()),
+      };
+      // Check this does not conflict with positions of existing items.
+      for (let i = 0; i < invalidPositions.length; i++) {
+        const current = invalidPositions[i];
+        if (randomPosition.x === current.x && randomPosition.y === current.y) {
+          // If current randomPosition conflicts with existing item, skip the
+          // rest of the while loop and generate a new random number.
+          continue generateRandom;
+        }
+      }
+      isInvalid = false;
+    }
+    return randomPosition;
+  }
+
+  #spawnFood(delay) {
+    clearTimeout(this.#spawnFoodTimeout);
+    this.#spawnFoodTimeout = setTimeout(() => {
+      const randomPosition = this.#getRandomPosition();
+      this.#foodPickups.push(randomPosition);
+    }, delay);
   }
 
   #createPlayerSnakes() {
@@ -132,7 +196,19 @@ class Game {
 
       const { x: newX, y: newY } = snake.getProjectedPosition();
 
-      // Collision detection for that gorgeous food which will at some point be implemented.
+      // Collision detection for food pickups.
+      for (const foodPickup of this.#foodPickups) {
+        if (newX === foodPickup.x && newY === foodPickup.y) {
+          // On the next update, the snake will not delete its tail in order to match the target length.
+          snake.targetLength++;
+          // Get rid of the food pickup that has been gobbled by the snake.
+          this.#foodPickups = this.#foodPickups.filter(
+            (pickup) => pickup !== foodPickup,
+          );
+          // Spawn another in after a delay.
+          this.#spawnFood(SPAWN_FOOD_TIMEOUT_MS);
+        }
+      }
 
       // Collision detection for the snakes.
       for (const otherPlayer of playersArray) {
