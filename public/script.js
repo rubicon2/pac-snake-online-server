@@ -172,27 +172,45 @@ function createGamePage() {
 
 function createSnakeChunk(x, y) {
   const div = document.createElement('div');
+  div.classList.add('game-obj');
   div.classList.add('snake-chunk');
   div.style.left = `${x * 80}px`;
   div.style.top = `${y * 80}px`;
   return div;
 }
 
+function createFood(x, y) {
+  const div = document.createElement('div');
+  div.classList.add('game-obj');
+  div.classList.add('food');
+  div.style.left = `${x * 80 + 25}px`;
+  div.style.top = `${y * 80 + 25}px`;
+  return div;
+}
+
 function refreshGamePage(game_state) {
-  // Remove all existing snake chunks.
-  const existingChunks = gameAreaElement.querySelectorAll('.snake-chunk');
+  // Remove all existing game objects.
+  const existingChunks = gameAreaElement.querySelectorAll('.game-obj');
   for (const chunk of existingChunks) {
     chunk.remove();
   }
 
-  // Create new ones.
-  const { state, players, currentRound } = game_state;
+  const { state, players, foodPickups, currentRound } = game_state;
+
+  // Create new snake chunks.
   for (const player of Object.values(players)) {
     const { chunks } = player.snake;
     for (const chunk of chunks) {
       const chunkElement = createSnakeChunk(chunk.x, chunk.y);
       gameAreaElement.appendChild(chunkElement);
     }
+  }
+
+  // Create food.
+  for (const foodPickup of foodPickups) {
+    const { x, y } = foodPickup;
+    const foodElement = createFood(x, y);
+    gameAreaElement.appendChild(foodElement);
   }
 }
 

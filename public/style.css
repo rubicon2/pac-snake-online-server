@@ -31,3 +31,10 @@ body {
   width: 80px;
   height: 80px;
 }
+
+.food {
+  position: absolute;
+  background-color: green;
+  width: 30px;
+  height: 30px;
+}
