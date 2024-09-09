@@ -111,8 +111,9 @@ class Game {
   }
 
   startGame() {
-    this.#state = 'running';
+    this.#foodPickups = [];
     this.#createPlayerSnakes();
+    this.#state = 'running';
     if (this.onGameStart) this.onGameStart(this);
     this.#spawnFood(SPAWN_FOOD_TIMEOUT_MS);
     this.update();
