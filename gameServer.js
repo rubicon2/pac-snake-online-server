@@ -102,7 +102,7 @@ function gameServer(app, port) {
               type: 'lobby_list_updated',
               lobbies: LobbyManager.packageData(),
             });
-            const message = `New lobby was created by ${clientMetadata.get(ws).name}: ${lobby_name}.`;
+            const message = `New lobby was created by ${clientMetadata.get(ws).name || 'unnamed user'}: ${lobby_name}.`;
             console.log(message);
             sendToClients(wss.clients, {
               type: 'message_received',
