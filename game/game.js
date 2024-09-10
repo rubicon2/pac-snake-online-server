@@ -82,7 +82,15 @@ class Game {
     this.onGameEvent('game_round_started', this);
   }
 
-  constructor(onGameEvent, roundsToWin = 3, speed = UPDATE_INTERVAL_MS) {
+  constructor(
+    // So that we don't need to check if onGameEvent exists literally every time we want to use it.
+    // Considered having a function that throws an error, to avoid strange errors where someone might forget
+    // to supply an onGameEvent argument, but decided against it - game class shouldn't care what onGameEvent
+    // does, if it does anything at all.
+    onGameEvent = () => {},
+    roundsToWin = 3,
+    speed = UPDATE_INTERVAL_MS,
+  ) {
     this.onGameEvent = onGameEvent;
     this.roundsToWin = roundsToWin;
     this.speed = speed;
@@ -110,7 +118,7 @@ class Game {
 
   startGame() {
     // Reset player game stats if those ever end up being done.
-    if (this.onGameEvent) this.onGameEvent('game_started', this);
+    this.onGameEvent('game_started', this);
     // Then start a round.
     this.#startRound();
   }
@@ -126,8 +134,7 @@ class Game {
   #startCountdown() {
     this.#state = 'countdown';
     this.#countdownValue = 3;
-    if (this.onGameEvent)
-      this.onGameEvent('game_round_countdown_started', this);
+    this.onGameEvent('game_round_countdown_started', this);
     // Then start the loop.
     clearInterval(this.#countdownInterval);
     this.#countdownInterval = setInterval(() => {
@@ -147,7 +154,7 @@ class Game {
 
   endGame() {
     this.#state = 'lobby';
-    if (this.onGameEvent) this.onGameEvent('game_ended', this);
+    this.onGameEvent('game_ended', this);
   }
 
   #getRandomPosition() {
@@ -273,7 +280,7 @@ class Game {
     switch (this.#state) {
       case 'running': {
         this.#moveSnakes();
-        if (this.onGameEvent) this.onGameEvent('game_state_updated', this);
+        this.onGameEvent('game_state_updated', this);
         clearTimeout(this.#updateTimeout);
         this.#updateTimeout = setTimeout(
           () => this.update(),
