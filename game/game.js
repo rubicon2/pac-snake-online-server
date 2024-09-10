@@ -12,6 +12,7 @@ const SPAWN_FOOD_TIMEOUT_MS = 5000;
 class Game {
   #updateTimeout = null;
   #spawnFoodTimeout = null;
+  #roundOverTimeout = null;
   #countdownInterval = null;
 
   // state can be: 'lobby', 'running', 'paused', 'round_over', 'game_over'
@@ -72,6 +73,7 @@ class Game {
   #foodPickups = [];
 
   #countdownValue = 3;
+  #lastRoundWinner = null;
 
   #currentRound = 0;
   get currentRound() {
@@ -113,6 +115,7 @@ class Game {
       foodPickups: this.#foodPickups,
       countdownValue: this.#countdownValue,
       currentRound: this.#currentRound,
+      lastRoundWinner: this.#lastRoundWinner,
     };
   }
 
@@ -213,6 +216,18 @@ class Game {
     }
   }
 
+  #getRoundWinner() {
+    const alivePlayers = [...this.#players.values()].filter(
+      (player) => player.snake.isAlive,
+    );
+    if (alivePlayers.length === 1) {
+      const lastPlayerStanding = alivePlayers[0];
+      return lastPlayerStanding;
+    } else {
+      return null;
+    }
+  }
+
   #moveSnakes() {
     // Need to do collision checking here and not on player class, as we can check the positions of other snakes only here.
     const playersArray = [...this.#players.values()];
@@ -262,8 +277,28 @@ class Game {
           // Otherwise, check all those chunks for collisions.
           if (chunk.x === newX && chunk.y === newY) {
             // Destroy snake.
-            // How to do that sequential snake destruction like in the old version?
             snake.kill();
+            // Check if a player has won the round and deal with that.
+            const roundWinner = this.#getRoundWinner();
+            if (roundWinner) {
+              roundWinner.roundsWon++;
+              this.#lastRoundWinner = roundWinner.name;
+              this.#state = 'round_over';
+              this.onGameEvent('game_round_ended', this);
+              clearTimeout(this.#roundOverTimeout);
+              this.#roundOverTimeout = setTimeout(() => {
+                this.#startRound();
+              }, 5000);
+            }
+            // If all players are dead and no-one won, deal with that.
+            if (this.snakes.length === 0) {
+              this.#state = 'round_over';
+              this.onGameEvent('game_round_failed', this);
+              clearTimeout(this.#roundOverTimeout);
+              this.#roundOverTimeout = setTimeout(() => {
+                this.#startRound();
+              }, 5000);
+            }
           }
         }
       }

@@ -107,6 +107,7 @@ socket.onmessage = (event) => {
         // Draw initial game state, i.e. snakes.
         refreshGamePage(json.game_state);
         // Draw countdown over screen.
+        if (gameOverlayElement) gameOverlayElement.remove();
         gameOverlayElement = createGameOverlay();
         refreshGameOverlay(json.game_state);
         gameAreaElement.appendChild(gameOverlayElement);
@@ -124,6 +125,22 @@ socket.onmessage = (event) => {
     case 'game_round_started': {
       // Clear off countdown.
       if (gameOverlayElement) gameOverlayElement.remove();
+      break;
+    }
+
+    case 'game_round_ended': {
+      if (gameOverlayElement) gameOverlayElement.remove();
+      gameOverlayElement = createGameOverlay();
+      gameOverlayElement.innerText = `${json.game_state.lastRoundWinner} WON THE ROUND!`;
+      gameAreaElement.appendChild(gameOverlayElement);
+      break;
+    }
+
+    case 'game_round_failed': {
+      if (gameOverlayElement) gameOverlayElement.remove();
+      gameOverlayElement = createGameOverlay();
+      gameOverlayElement.innerText = `NOBODY WON THE ROUND...`;
+      gameAreaElement.appendChild(gameOverlayElement);
       break;
     }
 
