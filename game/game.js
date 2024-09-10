@@ -40,12 +40,12 @@ class Game {
     // Server should check before trying to add, but just in case.
     if (this.#state === 'lobby' && this.playerCanJoin(id)) {
       this.#players.set(id, new Player(name, ws));
-      this.onGameStateChange(this);
+      this.onGameEvent('game_state_updated', this);
     }
   }
   removePlayer(id) {
     this.#players.delete(id);
-    this.onGameStateChange(this);
+    this.onGameEvent('game_state_updated', this);
     if (this.#players.size === 0) this.endGame();
   }
   hasPlayer(id) {
@@ -76,19 +76,15 @@ class Game {
   get currentRound() {
     return this.#currentRound;
   }
-  resetGame() {
-    this.#currentRound = 0;
-    this.onGameStateChange(this);
-  }
   nextRound() {
     this.#currentRound++;
-    this.onGameStateChange(this);
+    this.onGameEvent('game_round_started', this);
   }
 
-  constructor(onGameStateChange, onGameStart, onGameEnd) {
-    this.onGameStateChange = onGameStateChange;
-    this.onGameStart = onGameStart;
-    this.onGameEnd = onGameEnd;
+  constructor(onGameEvent, roundsToWin = 3, speed = UPDATE_INTERVAL_MS) {
+    this.onGameEvent = onGameEvent;
+    this.roundsToWin = roundsToWin;
+    this.speed = speed;
   }
 
   packagePlayerData() {
@@ -111,17 +107,32 @@ class Game {
   }
 
   startGame() {
+    // Reset player game stats if those ever end up being done.
+    if (this.onGameEvent) this.onGameEvent('game_started', this);
+    // Then start a round.
+    this.startRound();
+  }
+
+  startRound() {
+    // Reset game objects.
     this.#foodPickups = [];
     this.#createPlayerSnakes();
-    this.#state = 'running';
-    if (this.onGameStart) this.onGameStart(this);
-    this.#spawnFood(SPAWN_FOOD_TIMEOUT_MS);
-    this.update();
+    // Do a countdown and let the clients know it is starting.
+    this.#state = 'countdown';
+    if (this.onGameEvent) this.onGameEvent('game_countdown_started', this);
+    // Then start the loop.
+    clearTimeout(this.#countdownTimeout);
+    this.#countdownTimeout = setTimeout(() => {
+      this.#state = 'running';
+      if (this.onGameEvent) this.onGameEvent('game_round_started', this);
+      this.#spawnFood(SPAWN_FOOD_TIMEOUT_MS);
+      this.update();
+    }, 3000);
   }
 
   endGame() {
     this.#state = 'lobby';
-    if (this.onGameEnd) this.onGameEnd(this);
+    if (this.onGameEvent) this.onGameEvent('game_ended', this);
   }
 
   #getRandomPosition() {
@@ -247,10 +258,10 @@ class Game {
     switch (this.#state) {
       case 'running': {
         this.#moveSnakes();
-        if (this.onGameStateChange) this.onGameStateChange(this);
+        if (this.onGameEvent) this.onGameEvent('game_state_updated', this);
         clearTimeout(this.#updateTimeout);
         this.#updateTimeout = setTimeout(
-          this.update.bind(this),
+          () => this.update(),
           UPDATE_INTERVAL_MS,
         );
         break;

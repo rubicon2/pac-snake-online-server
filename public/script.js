@@ -102,7 +102,7 @@ socket.onmessage = (event) => {
       break;
     }
 
-    case 'game_updated': {
+    case 'game_state_updated': {
       // Update the game display.
       if (gameAreaElement) refreshGamePage(json.game_state);
       break;
