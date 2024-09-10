@@ -9,6 +9,7 @@ const clientNameElement = document.getElementById('client-name');
 let lobbyListElement = document.getElementById('lobby-list');
 const messagesElement = document.getElementById('messages');
 let gameAreaElement = document.getElementById('game-area');
+let gameOverlayElement = null;
 
 socket.onopen = () => {
   socket.send(JSON.stringify({ type: 'opened', uuid }));
@@ -90,7 +91,6 @@ socket.onmessage = (event) => {
       pageContentElement.remove();
       pageContentElement = createGamePage(json.game_state);
       document.body.appendChild(pageContentElement);
-      if (gameAreaElement) refreshGamePage(json.game_state);
       break;
     }
 
@@ -99,6 +99,31 @@ socket.onmessage = (event) => {
       pageContentElement.remove();
       pageContentElement = createLobbiesPage();
       document.body.appendChild(pageContentElement);
+      break;
+    }
+
+    case 'game_round_countdown_started': {
+      if (gameAreaElement) {
+        // Draw initial game state, i.e. snakes.
+        refreshGamePage(json.game_state);
+        // Draw countdown over screen.
+        gameOverlayElement = createGameOverlay();
+        refreshGameOverlay(json.game_state);
+        gameAreaElement.appendChild(gameOverlayElement);
+      }
+      break;
+    }
+
+    case 'game_round_countdown_updated': {
+      if (gameOverlayElement) {
+        refreshGameOverlay(json.game_state);
+      }
+      break;
+    }
+
+    case 'game_round_started': {
+      // Clear off countdown.
+      if (gameOverlayElement) gameOverlayElement.remove();
       break;
     }
 
@@ -154,6 +179,18 @@ function createLobbiesPage() {
   div.appendChild(leaveLobbyButton);
 
   return div;
+}
+
+function createGameOverlay() {
+  const div = document.createElement('div');
+  div.classList.add('overlay');
+  return div;
+}
+
+function refreshGameOverlay(game_state) {
+  if (gameOverlayElement) {
+    gameOverlayElement.textContent = game_state.countdownValue;
+  }
 }
 
 function createGameArea() {

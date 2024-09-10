@@ -12,6 +12,7 @@ const SPAWN_FOOD_TIMEOUT_MS = 5000;
 class Game {
   #updateTimeout = null;
   #spawnFoodTimeout = null;
+  #countdownInterval = null;
 
   // state can be: 'lobby', 'running', 'paused', 'round_over', 'game_over'
   #state = 'lobby';
@@ -72,6 +73,8 @@ class Game {
 
   #foodPickups = [];
 
+  #countdownValue = 3;
+
   #currentRound = 0;
   get currentRound() {
     return this.#currentRound;
@@ -102,6 +105,7 @@ class Game {
       // Use the array'd version of players instead of the map, which cannot be stringified.
       players: this.packagePlayerData(),
       foodPickups: this.#foodPickups,
+      countdownValue: this.#countdownValue,
       currentRound: this.#currentRound,
     };
   }
@@ -110,24 +114,37 @@ class Game {
     // Reset player game stats if those ever end up being done.
     if (this.onGameEvent) this.onGameEvent('game_started', this);
     // Then start a round.
-    this.startRound();
+    this.#startRound();
   }
 
-  startRound() {
+  #startRound() {
     // Reset game objects.
     this.#foodPickups = [];
     this.#createPlayerSnakes();
     // Do a countdown and let the clients know it is starting.
+    this.#startCountdown();
+  }
+
+  #startCountdown() {
     this.#state = 'countdown';
-    if (this.onGameEvent) this.onGameEvent('game_countdown_started', this);
+    this.#countdownValue = 3;
+    if (this.onGameEvent)
+      this.onGameEvent('game_round_countdown_started', this);
     // Then start the loop.
-    clearTimeout(this.#countdownTimeout);
-    this.#countdownTimeout = setTimeout(() => {
-      this.#state = 'running';
-      if (this.onGameEvent) this.onGameEvent('game_round_started', this);
-      this.#spawnFood(SPAWN_FOOD_TIMEOUT_MS);
-      this.update();
-    }, 3000);
+    clearInterval(this.#countdownInterval);
+    this.#countdownInterval = setInterval(() => {
+      if (this.#countdownValue === 'GO!') {
+        clearInterval(this.#countdownInterval);
+        this.#state = 'running';
+        this.onGameEvent('game_round_started', this);
+        this.#spawnFood(SPAWN_FOOD_TIMEOUT_MS);
+        this.update();
+      } else {
+        this.#countdownValue--;
+        if (this.#countdownValue === 0) this.#countdownValue = 'GO!';
+      }
+      this.onGameEvent('game_round_countdown_updated', this);
+    }, 1000);
   }
 
   endGame() {
