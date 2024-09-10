@@ -47,7 +47,8 @@ body {
   width: 100%;
   display: grid;
   place-items: center;
-  background-color: rgba(255, 192, 203, 0.74);
+  gap: 1rem;
+  color: white;
   font-size: 2rem;
 }
 
