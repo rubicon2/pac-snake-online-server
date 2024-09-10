@@ -119,10 +119,17 @@ class Game {
     };
   }
 
+  #resetPlayerStats() {
+    for (const player of this.#players.values()) {
+      player.longestSnakeLength = 0;
+      player.killCount = 0;
+      player.deathCount = 0;
+    }
+  }
+
   startGame() {
-    // Reset player game stats if those ever end up being done.
+    this.#resetPlayerStats();
     this.onGameEvent('game_started', this);
-    // Then start a round.
     this.#startRound();
   }
 
@@ -251,6 +258,9 @@ class Game {
         if (newX === foodPickup.x && newY === foodPickup.y) {
           // On the next update, the snake will not delete its tail in order to match the target length.
           snake.targetLength++;
+          // Update player's stats for the game if they have set a new record!
+          if (player.longestSnakeLength < snake.targetLength)
+            player.longestSnakeLength = snake.targetLength;
           // Get rid of the food pickup that has been gobbled by the snake.
           this.#foodPickups = this.#foodPickups.filter(
             (pickup) => pickup !== foodPickup,
@@ -278,17 +288,28 @@ class Game {
           if (chunk.x === newX && chunk.y === newY) {
             // Destroy snake.
             snake.kill();
+            // Update stats for players.
+            player.deathCount++;
+            otherPlayer.killCount++;
             // Check if a player has won the round and deal with that.
             const roundWinner = this.#getRoundWinner();
             if (roundWinner) {
               roundWinner.roundsWon++;
               this.#lastRoundWinner = roundWinner.name;
-              this.#state = 'round_over';
-              this.onGameEvent('game_round_ended', this);
-              clearTimeout(this.#roundOverTimeout);
-              this.#roundOverTimeout = setTimeout(() => {
-                this.#startRound();
-              }, 5000);
+              // Check if game is over!
+              if (roundWinner.roundsWon >= this.roundsToWin) {
+                // Show winner message and game stats.
+                this.#state = 'game_over';
+                this.onGameEvent('game_over', this);
+              } else {
+                // If not, do all this stuff...
+                this.#state = 'round_over';
+                this.onGameEvent('game_round_ended', this);
+                clearTimeout(this.#roundOverTimeout);
+                this.#roundOverTimeout = setTimeout(() => {
+                  this.#startRound();
+                }, 5000);
+              }
             }
             // If all players are dead and no-one won, deal with that.
             if (this.snakes.length === 0) {

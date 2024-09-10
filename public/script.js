@@ -131,7 +131,7 @@ socket.onmessage = (event) => {
     case 'game_round_ended': {
       if (gameOverlayElement) gameOverlayElement.remove();
       gameOverlayElement = createGameOverlay();
-      gameOverlayElement.innerText = `${json.game_state.lastRoundWinner} WON THE ROUND!`;
+      gameOverlayElement.innerText = `${json.game_state.lastRoundWinner.toUpperCase()} WON THE ROUND`;
       gameAreaElement.appendChild(gameOverlayElement);
       break;
     }
@@ -140,6 +140,15 @@ socket.onmessage = (event) => {
       if (gameOverlayElement) gameOverlayElement.remove();
       gameOverlayElement = createGameOverlay();
       gameOverlayElement.innerText = `NOBODY WON THE ROUND...`;
+      gameAreaElement.appendChild(gameOverlayElement);
+      break;
+    }
+
+    case 'game_over': {
+      // Show name of winner and any stats.
+      if (gameOverlayElement) gameOverlayElement.remove();
+      gameOverlayElement = createGameOverlay();
+      gameOverlayElement.appendChild(createGameOverInfo(json.game_state));
       gameAreaElement.appendChild(gameOverlayElement);
       break;
     }
@@ -196,6 +205,74 @@ function createLobbiesPage() {
   div.appendChild(leaveLobbyButton);
 
   return div;
+}
+
+function createGameOverInfo(game_state) {
+  const div = document.createElement('div');
+  div.classList.add('game-over-info');
+
+  const winnerText = document.createElement('div');
+  winnerText.classList.add('winner-text');
+  winnerText.textContent = `${game_state.lastRoundWinner.toUpperCase()} WON THE GAME`;
+  div.appendChild(winnerText);
+
+  const statsContainer = document.createElement('stats-container');
+  statsContainer.classList.add('stats-container');
+  div.appendChild(statsContainer);
+
+  const longestSnakePlayer = findPlayerWithLongestSnake(game_state.players);
+  statsContainer.appendChild(createStatTitle('LONGEST SNAKE:'));
+  statsContainer.appendChild(
+    createStatValue(
+      `${longestSnakePlayer.name.toUpperCase()} WITH ${longestSnakePlayer.longestSnakeLength}`,
+    ),
+  );
+
+  const mostKillsPlayer = findPlayerWithMostKills(game_state.players);
+  statsContainer.appendChild(createStatTitle('MOST KILLS:'));
+  statsContainer.appendChild(
+    createStatValue(
+      `${mostKillsPlayer.name.toUpperCase()} WITH ${mostKillsPlayer.killCount} KILLS`,
+    ),
+  );
+
+  const mostDeathsPlayer = findPlayerWithMostDeaths(game_state.players);
+  statsContainer.appendChild(createStatTitle('MOST DEATHS: '));
+  statsContainer.appendChild(
+    createStatValue(
+      `${mostDeathsPlayer.name.toUpperCase()} WITH ${mostDeathsPlayer.deathCount} DEATHS`,
+    ),
+  );
+
+  return div;
+}
+
+function createStatTitle(statTitle) {
+  const div = document.createElement('div');
+  div.classList.add('stats-label');
+  div.textContent = statTitle;
+  return div;
+}
+
+function createStatValue(statValue) {
+  const div = document.createElement('div');
+  div.classList.add('stats-value');
+  div.textContent = statValue;
+  return div;
+}
+
+function findPlayerWithLongestSnake(players) {
+  return Object.values(players).sort(
+    (a, b) => b.longestSnakeLength - a.longestSnakeLength,
+  )[0];
+}
+
+function findPlayerWithMostKills(players) {
+  return Object.values(players).sort((a, b) => b.killCount - a.killCount)[0];
+}
+
+function findPlayerWithMostDeaths(players) {
+  return Object.values(players).sort((a, b) => b.deathCount - a.deathCount)[0];
 }
 
 function createGameOverlay() {
