@@ -57,11 +57,9 @@ class Game {
       this.#players.get(id).ready = isReady;
     }
   }
-
   get playerCount() {
     return this.#players.size;
   }
-
   get allPlayersAreReady() {
     if (this.#players.size === 0) return false;
     const allPlayers = this.#players.values();
