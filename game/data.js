@@ -14,15 +14,22 @@ const SNAKE_SETUP_DATA = [
   { x: 1, y: 8, direction: 'left' },
 ];
 
+// Use an array so these are easy to cycle through.
+const GAME_SPEEDS = [
+  { name: 'slow', ms: 500 },
+  { name: 'normal', ms: 325 },
+  { name: 'fast', ms: 200 },
+];
+
 const SPAWN_FOOD_TIMEOUT_MS = 5000;
 
 const MIN_POS = 0;
 const MAX_POS = 10;
-const UPDATE_INTERVAL_MS = 1000;
 
 module.exports = {
   PLAYER_SETUP_DATA,
   SNAKE_SETUP_DATA,
+  GAME_SPEEDS,
   SPAWN_FOOD_TIMEOUT_MS,
   MIN_POS,
   MAX_POS,

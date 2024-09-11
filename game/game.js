@@ -4,7 +4,7 @@ const { loopInt } = require('loop-range');
 const {
   PLAYER_SETUP_DATA,
   SNAKE_SETUP_DATA,
-  UPDATE_INTERVAL_MS,
+  GAME_SPEEDS,
   SPAWN_FOOD_TIMEOUT_MS,
   MIN_POS,
   MAX_POS,
@@ -18,6 +18,7 @@ class Game {
   #spawnFoodTimeout = null;
   #roundOverTimeout = null;
   #countdownInterval = null;
+  #currentSpeedIndex = 1;
 
   // state can be: 'lobby', 'running', 'countdown', 'round_over', 'game_over'
   #state = 'lobby';
@@ -101,11 +102,21 @@ class Game {
     // does, if it does anything at all.
     onGameEvent = () => {},
     roundsToWin = 3,
-    speed = UPDATE_INTERVAL_MS,
+    // index 1 is 'normal' speed.
+    speed = GAME_SPEEDS[this.#currentSpeedIndex],
   ) {
     this.onGameEvent = onGameEvent;
     this.roundsToWin = roundsToWin;
     this.speed = speed;
+  }
+
+  changeSpeed() {
+    this.#currentSpeedIndex = loopInt(
+      0,
+      GAME_SPEEDS.length,
+      this.#currentSpeedIndex + 1,
+    );
+    this.speed = GAME_SPEEDS[this.#currentSpeedIndex];
   }
 
   packagePlayerData() {
@@ -120,6 +131,7 @@ class Game {
   packageData() {
     return {
       state: this.#state,
+      speed: this.speed,
       // Use the array'd version of players instead of the map, which cannot be stringified.
       players: this.packagePlayerData(),
       foodPickups: this.#foodPickups,
@@ -360,10 +372,7 @@ class Game {
         this.#moveSnakes();
         this.onGameEvent('game_state_updated', this);
         clearTimeout(this.#updateTimeout);
-        this.#updateTimeout = setTimeout(
-          () => this.update(),
-          UPDATE_INTERVAL_MS,
-        );
+        this.#updateTimeout = setTimeout(() => this.update(), this.speed.ms);
         break;
       }
     }

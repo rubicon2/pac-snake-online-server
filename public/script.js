@@ -447,7 +447,7 @@ function refreshLobbyListItems(element, lobbies) {
 
   // Now make the new ones.
   for (const lobby of lobbies) {
-    const { lobby_name, player_count, players } = lobby;
+    const { lobby_name, lobby_speed, player_count, players } = lobby;
     const li = document.createElement('li');
     li.innerText = lobby_name;
 
@@ -464,6 +464,11 @@ function refreshLobbyListItems(element, lobbies) {
     closeButton.innerText = 'Close';
     closeButton.onclick = () => closeLobby(lobby_name);
     li.appendChild(closeButton);
+
+    const changeSpeedButton = document.createElement('button');
+    changeSpeedButton.innerText = lobby_speed.name;
+    changeSpeedButton.onclick = () => changeLobbySpeed(lobby_name);
+    li.appendChild(changeSpeedButton);
 
     if (Object.keys(players).length > 0)
       li.appendChild(createLobbyPlayerList(Object.values(players)));
@@ -519,6 +524,12 @@ function leaveLobby() {
 
 function closeLobby(lobby_name) {
   socket.send(JSON.stringify({ type: 'close_lobby_request', lobby_name }));
+}
+
+function changeLobbySpeed(lobby_name) {
+  socket.send(
+    JSON.stringify({ type: 'change_lobby_speed_request', lobby_name }),
+  );
 }
 
 function playerReady() {

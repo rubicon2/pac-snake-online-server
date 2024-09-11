@@ -62,6 +62,7 @@ class LobbyManager {
       packaged.push({
         lobby_name,
         lobby_state: lobby.state,
+        lobby_speed: lobby.speed,
         player_count,
         players,
       });

@@ -200,6 +200,26 @@ function gameServer(app, port) {
           break;
         }
 
+        case 'change_lobby_speed_request': {
+          const { lobby_name } = data;
+          try {
+            const lobby = LobbyManager.get(lobby_name);
+            if (lobby.state === 'running') {
+              throw new Error(
+                'Cannot change game speed from lobby while a game is running.',
+              );
+            }
+            LobbyManager.get(lobby_name).changeSpeed();
+            sendToClients(wss.clients, {
+              type: 'lobby_list_updated',
+              lobbies: LobbyManager.packageData(),
+            });
+          } catch (error) {
+            reportError(wss.clients, error);
+          }
+          break;
+        }
+
         case 'lobby_list_update_request': {
           ws.send(
             JSON.stringify({
