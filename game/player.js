@@ -1,7 +1,8 @@
 class Player {
-  constructor(name, ws) {
+  constructor(name, ws, color) {
     this.name = name;
     this.ws = ws;
+    this.color = color;
     this.ready = false;
     this.roundsWon = 0;
     this.snake = null;
@@ -13,6 +14,7 @@ class Player {
   packageData() {
     return {
       name: this.name,
+      color: this.color.toString(),
       ready: this.ready,
       roundsWon: this.roundsWon,
       longestSnakeLength: this.longestSnakeLength,

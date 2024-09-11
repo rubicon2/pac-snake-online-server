@@ -2,6 +2,7 @@ const Player = require('./player');
 const Snake = require('./snake');
 const { loopInt } = require('loop-range');
 const {
+  PLAYER_SETUP_DATA,
   SNAKE_SETUP_DATA,
   UPDATE_INTERVAL_MS,
   MIN_POS,
@@ -43,12 +44,20 @@ class Game {
   addPlayer(id, name, ws) {
     // Server should check before trying to add, but just in case.
     if (this.#state === 'lobby' && this.playerCanJoin(id)) {
-      this.#players.set(id, new Player(name, ws));
+      // As color is picked before next player is added to array, do not need to do size - 1!
+      // If player leaves, colors must be reassigned.
+      const playerColor = PLAYER_SETUP_DATA[this.#players.size].color;
+      this.#players.set(id, new Player(name, ws, playerColor));
       this.onGameEvent('game_state_updated', this);
     }
   }
   removePlayer(id) {
     this.#players.delete(id);
+    // Reassign player colors.
+    const playerArr = [...this.#players.values()];
+    for (let i = 0; i < playerArr.length; i++) {
+      playerArr[i].color = PLAYER_SETUP_DATA[i].color;
+    }
     this.onGameEvent('game_state_updated', this);
     if (this.#players.size < MIN_PLAYERS) this.endGame();
   }

@@ -1,3 +1,12 @@
+const Color = require('./color');
+
+const PLAYER_SETUP_DATA = [
+  { color: new Color(255, 0, 0, 1) },
+  { color: new Color(0, 255, 0, 1) },
+  { color: new Color(0, 0, 255, 1) },
+  { color: new Color(127, 25, 25, 1) },
+];
+
 const SNAKE_SETUP_DATA = [
   { x: 1, y: 1, direction: 'up' },
   { x: 8, y: 8, direction: 'down' },
@@ -10,6 +19,7 @@ const MAX_POS = 10;
 const UPDATE_INTERVAL_MS = 1000;
 
 module.exports = {
+  PLAYER_SETUP_DATA,
   SNAKE_SETUP_DATA,
   MIN_POS,
   MAX_POS,

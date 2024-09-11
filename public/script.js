@@ -370,12 +370,13 @@ function createGamePage() {
   return div;
 }
 
-function createSnakeChunk(x, y) {
+function createSnakeChunk(x, y, color) {
   const div = document.createElement('div');
   div.classList.add('game-obj');
   div.classList.add('snake-chunk');
   div.style.left = `${x * 80}px`;
   div.style.top = `${y * 80}px`;
+  div.style.backgroundColor = color;
   return div;
 }
 
@@ -401,7 +402,7 @@ function refreshGamePage(game_state) {
   for (const player of Object.values(players)) {
     const { chunks } = player.snake;
     for (const chunk of chunks) {
-      const chunkElement = createSnakeChunk(chunk.x, chunk.y);
+      const chunkElement = createSnakeChunk(chunk.x, chunk.y, player.color);
       gameAreaElement.appendChild(chunkElement);
     }
   }
@@ -475,6 +476,7 @@ function createLobbyPlayerList(players) {
   const ul = document.createElement('ul');
   for (const player of players) {
     const li = document.createElement('li');
+    li.style.backgroundColor = player.color;
     li.innerText = `${player.name} - ${player.ready ? 'READY' : 'NOT READY'}`;
     ul.appendChild(li);
   }
