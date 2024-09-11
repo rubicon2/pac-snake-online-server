@@ -14,6 +14,8 @@ const SNAKE_SETUP_DATA = [
   { x: 1, y: 8, direction: 'left' },
 ];
 
+const SPAWN_FOOD_TIMEOUT_MS = 5000;
+
 const MIN_POS = 0;
 const MAX_POS = 10;
 const UPDATE_INTERVAL_MS = 1000;
@@ -21,7 +23,7 @@ const UPDATE_INTERVAL_MS = 1000;
 module.exports = {
   PLAYER_SETUP_DATA,
   SNAKE_SETUP_DATA,
+  SPAWN_FOOD_TIMEOUT_MS,
   MIN_POS,
   MAX_POS,
-  UPDATE_INTERVAL_MS,
 };

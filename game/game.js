@@ -5,13 +5,13 @@ const {
   PLAYER_SETUP_DATA,
   SNAKE_SETUP_DATA,
   UPDATE_INTERVAL_MS,
+  SPAWN_FOOD_TIMEOUT_MS,
   MIN_POS,
   MAX_POS,
 } = require('./data');
 
 require('dotenv').config();
 const MIN_PLAYERS = process.env.MIN_PLAYERS || 2;
-const SPAWN_FOOD_TIMEOUT_MS = 5000;
 
 class Game {
   #updateTimeout = null;
