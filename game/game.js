@@ -81,10 +81,6 @@ class Game {
   get currentRound() {
     return this.#currentRound;
   }
-  nextRound() {
-    this.#currentRound++;
-    this.onGameEvent('game_round_started', this);
-  }
 
   constructor(
     // So that we don't need to check if onGameEvent exists literally every time we want to use it.
