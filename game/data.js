@@ -10,8 +10,8 @@ const PLAYER_SETUP_DATA = [
 const SNAKE_SETUP_DATA = [
   { x: 1, y: 1, direction: 'up' },
   { x: 8, y: 8, direction: 'down' },
-  { x: 8, y: 1, direction: 'left' },
-  { x: 1, y: 8, direction: 'right' },
+  { x: 8, y: 1, direction: 'right' },
+  { x: 1, y: 8, direction: 'left' },
 ];
 
 const MIN_POS = 0;
