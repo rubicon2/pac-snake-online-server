@@ -400,9 +400,12 @@ function refreshGamePage(game_state) {
 
   // Create new snake chunks.
   for (const player of Object.values(players)) {
-    const { chunks } = player.snake;
+    const { chunks, dir } = player.snake;
     for (const chunk of chunks) {
       const chunkElement = createSnakeChunk(chunk.x, chunk.y, player.color);
+      const isHead =
+        chunk.x === player.snake.headX && chunk.y === player.snake.headY;
+      if (isHead) chunkElement.classList.add('snake-head', dir);
       gameAreaElement.appendChild(chunkElement);
     }
   }

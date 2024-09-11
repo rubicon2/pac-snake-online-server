@@ -3,6 +3,7 @@ body {
   display: grid;
   place-items: center;
   font-family: 'Roboto', sans-serif;
+  image-rendering: pixelated;
 }
 
 #messages {
@@ -31,6 +32,27 @@ body {
   background-color: yellow;
   width: 80px;
   height: 80px;
+}
+
+.snake-head {
+  background-image: url('/head_1.png');
+  background-size: cover;
+}
+
+.up {
+  transform: rotate(0);
+}
+
+.right {
+  transform: rotate(90deg);
+}
+
+.down {
+  transform: rotate(180deg);
+}
+
+.left {
+  transform: rotate(270deg);
 }
 
 .food {
