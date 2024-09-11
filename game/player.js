@@ -14,7 +14,7 @@ class Player {
   packageData() {
     return {
       name: this.name,
-      color: this.color.toString(),
+      color: this.color,
       ready: this.ready,
       roundsWon: this.roundsWon,
       longestSnakeLength: this.longestSnakeLength,

@@ -400,9 +400,14 @@ function refreshGamePage(game_state) {
 
   // Create new snake chunks.
   for (const player of Object.values(players)) {
+    const { color } = player;
     const { chunks, dir } = player.snake;
     for (const chunk of chunks) {
-      const chunkElement = createSnakeChunk(chunk.x, chunk.y, player.color);
+      const chunkElement = createSnakeChunk(
+        chunk.x,
+        chunk.y,
+        randomisedColorToString(color),
+      );
       const isHead =
         chunk.x === player.snake.headX && chunk.y === player.snake.headY;
       if (isHead) chunkElement.classList.add('snake-head', dir);
@@ -416,6 +421,18 @@ function refreshGamePage(game_state) {
     const foodElement = createFood(x, y);
     gameAreaElement.appendChild(foodElement);
   }
+}
+
+function randomisedColorToString(color) {
+  const r = color.r * Math.max(Math.random(), 0.8);
+  const g = color.g * Math.max(Math.random(), 0.8);
+  const b = color.b * Math.max(Math.random(), 0.8);
+  const a = Math.max(Math.random(), 0.8);
+  return colorToString({ r, g, b, a });
+}
+
+function colorToString(color) {
+  return `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a})`;
 }
 
 function createMessage(message) {
@@ -497,7 +514,7 @@ function createLobbyPlayerList(players, isGameRunning) {
   const ul = document.createElement('ul');
   for (const player of players) {
     const li = document.createElement('li');
-    li.style.backgroundColor = player.color;
+    li.style.backgroundColor = colorToString(player.color);
     li.innerText = `${player.name} - ${isGameRunning ? 'PLAYING' : player.ready ? 'READY' : 'NOT READY'}`;
     ul.appendChild(li);
   }
