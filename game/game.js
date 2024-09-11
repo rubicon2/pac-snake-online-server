@@ -171,6 +171,9 @@ class Game {
 
   endGame() {
     this.#state = 'lobby';
+    for (const player of this.#players.values()) {
+      player.ready = false;
+    }
     this.onGameEvent('game_ended', this);
   }
 
