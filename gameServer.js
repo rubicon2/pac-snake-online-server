@@ -4,6 +4,7 @@ const validator = require('validator');
 const LobbyManager = require('./lobbyManager');
 const { sendToClients } = require('./wsUtils');
 
+require('dotenv').config();
 const MAX_GAMES = process.env.MAX_GAMES || 4;
 
 // ws object maps to: time_connected, id, name, lobby_name, which can be used to find the game from the games map.

@@ -9,8 +9,9 @@ const {
   MAX_POS,
 } = require('./data');
 
-const SPAWN_FOOD_TIMEOUT_MS = 5000;
+require('dotenv').config();
 const MIN_PLAYERS = process.env.MIN_PLAYERS || 2;
+const SPAWN_FOOD_TIMEOUT_MS = 5000;
 
 class Game {
   #updateTimeout = null;
