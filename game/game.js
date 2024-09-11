@@ -190,6 +190,10 @@ class Game {
   }
 
   endGame() {
+    clearInterval(this.#countdownInterval);
+    clearTimeout(this.#roundOverTimeout);
+    clearTimeout(this.#roundOverTimeout);
+    clearTimeout(this.#updateTimeout);
     this.#state = 'lobby';
     for (const player of this.#players.values()) {
       player.ready = false;
