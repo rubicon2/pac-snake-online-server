@@ -1,10 +1,10 @@
 const Color = require('./color');
 
 const PLAYER_SETUP_DATA = [
-  { color: new Color(255, 0, 0, 1) },
-  { color: new Color(0, 255, 0, 1) },
-  { color: new Color(0, 0, 255, 1) },
-  { color: new Color(127, 25, 25, 1) },
+  { color: new Color(255, 102, 204, 1) },
+  { color: new Color(26, 102, 255, 1) },
+  { color: new Color(213, 50, 0, 1) },
+  { color: new Color(30, 190, 0, 1) },
 ];
 
 const SNAKE_SETUP_DATA = [
