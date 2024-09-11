@@ -447,42 +447,55 @@ function refreshLobbyListItems(element, lobbies) {
 
   // Now make the new ones.
   for (const lobby of lobbies) {
-    const { lobby_name, lobby_speed, player_count, players } = lobby;
+    const { lobby_name, lobby_state, lobby_speed, player_count, players } =
+      lobby;
     const li = document.createElement('li');
     li.innerText = lobby_name;
 
+    const isGameRunning = lobby_state != 'lobby';
+    const gameStatusText = isGameRunning
+      ? 'RUNNING'
+      : player_count === 4
+        ? 'FULL'
+        : 'JOINABLE';
+
     const playerCount = document.createElement('span');
-    playerCount.innerText = ` ${player_count}/4`;
+    playerCount.innerText = ` ${player_count}/4 - ${gameStatusText}`;
     li.appendChild(playerCount);
 
     const joinButton = document.createElement('button');
     joinButton.innerText = 'Join';
     joinButton.onclick = () => joinLobby(lobby_name);
+    joinButton.disabled = isGameRunning;
     li.appendChild(joinButton);
 
     const closeButton = document.createElement('button');
     closeButton.innerText = 'Close';
     closeButton.onclick = () => closeLobby(lobby_name);
+    closeButton.disabled = isGameRunning;
     li.appendChild(closeButton);
 
     const changeSpeedButton = document.createElement('button');
     changeSpeedButton.innerText = lobby_speed.name;
     changeSpeedButton.onclick = () => changeLobbySpeed(lobby_name);
+    changeSpeedButton.disabled = isGameRunning;
     li.appendChild(changeSpeedButton);
 
     if (Object.keys(players).length > 0)
-      li.appendChild(createLobbyPlayerList(Object.values(players)));
+      li.appendChild(
+        createLobbyPlayerList(Object.values(players), isGameRunning),
+      );
 
     element.appendChild(li);
   }
 }
 
-function createLobbyPlayerList(players) {
+function createLobbyPlayerList(players, isGameRunning) {
   const ul = document.createElement('ul');
   for (const player of players) {
     const li = document.createElement('li');
     li.style.backgroundColor = player.color;
-    li.innerText = `${player.name} - ${player.ready ? 'READY' : 'NOT READY'}`;
+    li.innerText = `${player.name} - ${isGameRunning ? 'PLAYING' : player.ready ? 'READY' : 'NOT READY'}`;
     ul.appendChild(li);
   }
   return ul;
