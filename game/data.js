@@ -16,9 +16,9 @@ const SNAKE_SETUP_DATA = [
 
 // Use an array so these are easy to cycle through.
 const GAME_SPEEDS = [
-  { name: 'slow', ms: 500 },
-  { name: 'normal', ms: 325 },
-  { name: 'fast', ms: 200 },
+  { name: 'Slow', ms: 500 },
+  { name: 'Normal', ms: 325 },
+  { name: 'Fast', ms: 200 },
 ];
 
 const SPAWN_FOOD_TIMEOUT_MS = 5000;
