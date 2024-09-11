@@ -17,7 +17,7 @@ class Game {
   #roundOverTimeout = null;
   #countdownInterval = null;
 
-  // state can be: 'lobby', 'running', 'paused', 'round_over', 'game_over'
+  // state can be: 'lobby', 'running', 'countdown', 'round_over', 'game_over'
   #state = 'lobby';
   get state() {
     return this.#state;
