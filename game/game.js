@@ -54,10 +54,12 @@ class Game {
   }
   removePlayer(id) {
     this.#players.delete(id);
-    // Reassign player colors.
-    const playerArr = [...this.#players.values()];
-    for (let i = 0; i < playerArr.length; i++) {
-      playerArr[i].color = PLAYER_SETUP_DATA[i].color;
+    // Reassign player colors if the game is in the lobby state (i.e. players can still join)
+    if (this.#state === 'lobby') {
+      const playerArr = [...this.#players.values()];
+      for (let i = 0; i < playerArr.length; i++) {
+        playerArr[i].color = PLAYER_SETUP_DATA[i].color;
+      }
     }
     this.onGameEvent('game_state_updated', this);
     if (this.#players.size < MIN_PLAYERS) this.endGame();
