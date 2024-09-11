@@ -307,6 +307,10 @@ class Game {
                 // Show winner message and game stats.
                 this.#state = 'game_over';
                 this.onGameEvent('game_over', this);
+                // Go back to lobby after ten seconds.
+                setTimeout(() => {
+                  this.endGame();
+                }, 10000);
               } else {
                 // If not, do all this stuff...
                 this.#state = 'round_over';

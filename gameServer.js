@@ -199,6 +199,26 @@ function gameServer(app, port) {
           break;
         }
 
+        case 'lobby_list_update_request': {
+          ws.send(
+            JSON.stringify({
+              type: 'lobby_list_updated',
+              lobbies: LobbyManager.packageData(),
+            }),
+          );
+          break;
+        }
+
+        case 'lobby_header_update_request': {
+          ws.send(
+            JSON.stringify({
+              type: 'lobby_header_updated',
+              lobby_name: clientMetadata.get(ws).lobby,
+            }),
+          );
+          break;
+        }
+
         case 'player_ready_changed': {
           try {
             const { id, lobby: lobby_name } = clientMetadata.get(ws);

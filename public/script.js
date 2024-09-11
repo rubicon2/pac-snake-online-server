@@ -1,13 +1,20 @@
 // import DOMPurify from '/libs/purify.min.js';
 const socket = new WebSocket('ws://localhost:8080');
 
+// Feel like the server should generate a uuid and send back to client when they connect?
+// Stop malicious users generating their own uuids.
+// But if the uuid is saved to the user's cookies, they would be able to edit it anyway...
+
+// How about, if there is a cookie for the uuid that is sent, if not the server generates a UUID and sends it back to the client.
+// Then the client saves to cookies, and the server also adds it to a set of approved uuids.
+// When the client tries to connect, the server will only allow the connection if the uuid provided by the client exists in the server's uuid set.
 const uuid = self.crypto.randomUUID();
 
 let pageContentElement = document.getElementById('content');
 let currentLobbyElement = document.getElementById('current-lobby');
-const clientNameElement = document.getElementById('client-name');
+let clientNameElement = document.getElementById('client-name');
 let lobbyListElement = document.getElementById('lobby-list');
-const messagesElement = document.getElementById('messages');
+let messagesElement = document.getElementById('messages');
 let gameAreaElement = document.getElementById('game-area');
 let gameOverlayElement = null;
 
@@ -71,6 +78,11 @@ socket.onmessage = (event) => {
       break;
     }
 
+    case 'lobby_header_updated': {
+      refreshLobbyHeader(currentLobbyElement, json.lobby_name);
+      break;
+    }
+
     case 'joined_lobby': {
       refreshLobbyHeader(currentLobbyElement, json.lobby_name);
       break;
@@ -97,8 +109,12 @@ socket.onmessage = (event) => {
     case 'game_ended': {
       // Show the lobby screen.
       pageContentElement.remove();
+      // Will be filled with default information.
       pageContentElement = createLobbiesPage();
       document.body.appendChild(pageContentElement);
+      // Get lobby info from server, which will respond with lobby_header_updated and lobby_list_updated events.
+      requestLobbyHeaderUpdate();
+      requestLobbyListUpdate();
       break;
     }
 
@@ -179,12 +195,15 @@ function createLobbiesPage() {
   h1.textContent = 'Pac-Snake Online';
   div.appendChild(h1);
 
-  const h2 = document.createElement('h2');
-  h2.id = 'client-name';
-  div.appendChild(h2);
+  // Top level ref for later access.
+  clientNameElement = document.createElement('h2');
+  clientNameElement.id = 'client-name';
+  div.appendChild(clientNameElement);
 
-  const currentLobbyHeader = createCurrentLobbyHeader('default');
-  div.appendChild(currentLobbyHeader);
+  // Top level ref for later access.
+  currentLobbyElement = createCurrentLobbyHeader();
+  refreshLobbyHeader(currentLobbyElement, 'the lobby list');
+  div.appendChild(currentLobbyElement);
 
   const readyButton = document.createElement('button');
   readyButton.type = 'button';
@@ -203,6 +222,56 @@ function createLobbiesPage() {
   leaveLobbyButton.onclick = leaveLobby;
   leaveLobbyButton.textContent = 'Leave Lobby';
   div.appendChild(leaveLobbyButton);
+
+  const nameChangeForm = document.createElement('form');
+  nameChangeForm.onsubmit = requestNameChange;
+  div.appendChild(nameChangeForm);
+
+  const nameLabel = document.createElement('label');
+  nameLabel.htmlFor = 'client-name';
+  nameLabel.textContent = 'Player name:';
+  nameChangeForm.appendChild(nameLabel);
+
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.id = 'client-name';
+  nameInput.name = 'client_name';
+  nameInput.ariaAutoComplete = false;
+  nameChangeForm.appendChild(nameInput);
+
+  const nameSubmit = document.createElement('button');
+  nameSubmit.textContent = 'Set Name';
+  nameChangeForm.appendChild(nameSubmit);
+
+  const lobbyForm = document.createElement('form');
+  lobbyForm.onsubmit = requestNewLobby;
+  div.appendChild(lobbyForm);
+
+  const lobbyNameLabel = document.createElement('label');
+  lobbyNameLabel.htmlFor = 'lobby-name';
+  lobbyNameLabel.textContent = 'Lobby name:';
+  lobbyForm.appendChild(lobbyNameLabel);
+
+  const lobbyNameInput = document.createElement('input');
+  lobbyNameInput.type = 'text';
+  lobbyNameInput.id = 'lobby-name';
+  lobbyNameInput.name = 'lobby_name';
+  lobbyNameInput.ariaAutoComplete = false;
+  lobbyForm.appendChild(lobbyNameInput);
+
+  const lobbySubmit = document.createElement('button');
+  lobbySubmit.textContent = 'Create New Lobby';
+  lobbyForm.appendChild(lobbySubmit);
+
+  // Use top-level ref so we can access later.
+  lobbyListElement = document.createElement('ul');
+  lobbyListElement.id = 'lobby-list';
+  div.appendChild(lobbyListElement);
+
+  // Use top-level ref so we can access later.
+  messagesElement = document.createElement('ul');
+  messagesElement.id = 'messages';
+  div.appendChild(messagesElement);
 
   return div;
 }
@@ -351,17 +420,20 @@ function createMessage(message) {
   return li;
 }
 
-function createCurrentLobbyHeader(currentLobby) {
-  const h2 = document.createElement('h2');
-  h2.id = 'current-lobby';
-  h2.innerText = validator.escape(currentLobby);
-  return h2;
+function createCurrentLobbyHeader() {
+  const p = document.createElement('p');
+  p.id = 'current-lobby';
+  return p;
 }
 
 function refreshLobbyHeader(element, lobbyName) {
   element.innerText = "You're in: ";
   const strong = document.createElement('strong');
-  strong.innerText = validator.escape(lobbyName);
+  if (lobbyName != '') {
+    strong.innerText = validator.escape(lobbyName);
+  } else {
+    strong.innerText = 'the lobby list';
+  }
   element.appendChild(strong);
 }
 
@@ -409,6 +481,14 @@ function createLobbyPlayerList(players) {
   return ul;
 }
 
+function requestLobbyHeaderUpdate() {
+  socket.send(JSON.stringify({ type: 'lobby_header_update_request' }));
+}
+
+function requestLobbyListUpdate() {
+  socket.send(JSON.stringify({ type: 'lobby_list_update_request' }));
+}
+
 function requestNameChange(event) {
   event.preventDefault();
   const { client_name } = Object.fromEntries(
@@ -446,3 +526,6 @@ function playerReady() {
 function playerNotReady() {
   socket.send(JSON.stringify({ type: 'player_ready_changed', ready: false }));
 }
+
+pageContentElement = createLobbiesPage();
+document.body.appendChild(pageContentElement);
