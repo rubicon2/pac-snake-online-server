@@ -7,7 +7,9 @@ const {
   MIN_POS,
   MAX_POS,
 } = require('./data');
+
 const SPAWN_FOOD_TIMEOUT_MS = 5000;
+const MIN_PLAYERS = process.env.MIN_PLAYERS || 2;
 
 class Game {
   #updateTimeout = null;
@@ -48,7 +50,7 @@ class Game {
   removePlayer(id) {
     this.#players.delete(id);
     this.onGameEvent('game_state_updated', this);
-    if (this.#players.size === 0) this.endGame();
+    if (this.#players.size < MIN_PLAYERS) this.endGame();
   }
   hasPlayer(id) {
     return this.#players.has(id);
@@ -62,7 +64,7 @@ class Game {
     return this.#players.size;
   }
   get allPlayersAreReady() {
-    if (this.#players.size === 0) return false;
+    if (this.#players.size < MIN_PLAYERS) return false;
     const allPlayers = this.#players.values();
     for (const player of allPlayers) {
       if (!player.ready) return false;
@@ -128,6 +130,11 @@ class Game {
   }
 
   startGame() {
+    if (this.#players.size < MIN_PLAYERS) {
+      throw new Error(
+        `Cannot start a game with less than ${MIN_PLAYERS} players.`,
+      );
+    }
     this.#resetPlayerStats();
     this.onGameEvent('game_started', this);
     this.#startRound();
