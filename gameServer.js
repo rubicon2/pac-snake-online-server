@@ -123,23 +123,42 @@ function gameServer(app, port) {
               );
             // If player is already in a lobby, remove them.
             if (previousLobby) LobbyManager.get(previousLobby).removePlayer(id);
+
+            // Send client messages if they can't join the lobby for whatever reason.
             const newLobby = LobbyManager.get(lobby_name);
-            // Now join the requested lobby.
-            if (newLobby.state === 'lobby' && newLobby.playerCanJoin(id)) {
-              clientMetadata.get(ws).lobby = lobby_name;
-              newLobby.addPlayer(id, name, ws);
-              const message = `${name} joined lobby: ${lobby_name}.`;
-              console.log(message);
-              sendToClients(wss.clients, {
-                type: 'message_received',
-                message,
-              });
-              ws.send(JSON.stringify({ type: 'joined_lobby', lobby_name }));
-              sendToClients(wss.clients, {
-                type: 'lobby_list_updated',
-                lobbies: LobbyManager.packageData(),
-              });
+            if (newLobby.state !== 'lobby') {
+              ws.send(
+                JSON.stringify({
+                  type: 'message_received',
+                  message: `Cannot join ${lobby_name} as the game is already running.`,
+                }),
+              );
+              break;
             }
+            if (!newLobby.playerCanJoin(id)) {
+              ws.send(
+                JSON.stringify({
+                  type: 'message_received',
+                  message: `Cannot join ${lobby_name} as it is already full.`,
+                }),
+              );
+              break;
+            }
+
+            // Now join the requested lobby if the game is not running and there are spots free.
+            clientMetadata.get(ws).lobby = lobby_name;
+            newLobby.addPlayer(id, name, ws);
+            const message = `${name} joined lobby: ${lobby_name}.`;
+            console.log(message);
+            sendToClients(wss.clients, {
+              type: 'message_received',
+              message,
+            });
+            ws.send(JSON.stringify({ type: 'joined_lobby', lobby_name }));
+            sendToClients(wss.clients, {
+              type: 'lobby_list_updated',
+              lobbies: LobbyManager.packageData(),
+            });
           } catch (error) {
             reportError(wss.clients, error);
           }
