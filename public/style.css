@@ -16,6 +16,11 @@ body {
   image-rendering: pixelated;
 }
 
+input {
+  font-family: 'Roboto', sans-serif;
+  font-size: 1rem;
+}
+
 #messages {
   list-style: none;
 }
