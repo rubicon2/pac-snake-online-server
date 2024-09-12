@@ -18,6 +18,8 @@ let messagesElement = document.getElementById('messages');
 let gameAreaElement = document.getElementById('game-area');
 let gameOverlayElement = null;
 
+const MESSAGE_DISPLAY_TIME = 10000;
+
 socket.onopen = () => {
   socket.send(JSON.stringify({ type: 'opened', uuid }));
 };
@@ -190,7 +192,7 @@ socket.onmessage = (event) => {
       messagesElement.appendChild(newMessageElement);
       setTimeout(() => {
         newMessageElement.remove();
-      }, 10000);
+      }, MESSAGE_DISPLAY_TIME);
       break;
     }
   }
