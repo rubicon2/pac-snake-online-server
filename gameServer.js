@@ -317,6 +317,19 @@ function gameServer(app, port) {
     });
   });
 
+  function sendGameEventToPlayers(type, game) {
+    if (type === 'game_ended') {
+      sendToClients(wss.clients, {
+        type: 'lobby_list_updated',
+        lobbies: LobbyManager.packageData(),
+      });
+    }
+    sendToClients(game.clients, {
+      type,
+      game_state: game.packageData(),
+    });
+  }
+
   return wss;
 }
 
@@ -325,13 +338,6 @@ function reportError(clients, error) {
   sendToClients(clients, {
     type: 'message_received',
     message: error.message,
-  });
-}
-
-function sendGameEventToPlayers(type, game) {
-  sendToClients(game.clients, {
-    type,
-    game_state: game.packageData(),
   });
 }
 
