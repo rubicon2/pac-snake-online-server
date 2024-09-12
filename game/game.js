@@ -331,42 +331,15 @@ class Game {
               this.#lastRoundWinner = roundWinner.name;
               // Check if game is over!
               if (roundWinner.roundsWon >= this.roundsToWin) {
-                // Show winner message and game stats.
-                this.#state = 'game_over';
-                this.onGameEvent('game_over', this);
-                // Go back to lobby after ten seconds.
-                setTimeout(() => {
-                  this.endGame();
-                }, 10000);
+                this.#handleGameOver();
               } else {
-                // If not, do all this stuff...
-                this.#state = 'round_over';
-                this.onGameEvent('game_round_ended', this);
-                clearTimeout(this.#roundOverTimeout);
-                this.#roundOverTimeout = setTimeout(() => {
-                  this.#startRound();
-                }, 5000);
+                // If not game over, then the round is over.
+                this.#handleRoundOver();
               }
             }
-            // If all players are dead and no-one won, deal with that.
-            // But if it is a single-player game, end it with stats!
+            // If all players are dead, deal with that.
             if (this.alivePlayers.length === 0) {
-              if (this.#players.size === 1) {
-                // If player dies in a singleplayer game.
-                this.#state = 'game_over';
-                this.onGameEvent('single_player_game_over', this);
-                setTimeout(() => {
-                  this.endGame();
-                }, 10000);
-              } else {
-                // If all players are dead in a multiplayer game.
-                this.#state = 'round_over';
-                this.onGameEvent('game_round_failed', this);
-                clearTimeout(this.#roundOverTimeout);
-                this.#roundOverTimeout = setTimeout(() => {
-                  this.#startRound();
-                }, 5000);
-              }
+              this.#handleAllSnakesDead();
             }
           }
         }
@@ -377,6 +350,44 @@ class Game {
 
       // If no collisions happened, create new chunk at newX and newY positions.
       snake.moveTo(newX, newY);
+    }
+  }
+
+  #handleGameOver() {
+    // Show winner message and game stats.
+    this.#state = 'game_over';
+    this.onGameEvent('game_over', this);
+    // Go back to lobby after ten seconds.
+    setTimeout(() => {
+      this.endGame();
+    }, 10000);
+  }
+
+  #handleRoundOver() {
+    this.#state = 'round_over';
+    this.onGameEvent('game_round_ended', this);
+    clearTimeout(this.#roundOverTimeout);
+    this.#roundOverTimeout = setTimeout(() => {
+      this.#startRound();
+    }, 5000);
+  }
+
+  #handleAllSnakesDead() {
+    if (this.#players.size === 1) {
+      // If player dies in a singleplayer game, trigger the stats screen and end the game.
+      this.#state = 'game_over';
+      this.onGameEvent('single_player_game_over', this);
+      setTimeout(() => {
+        this.endGame();
+      }, 10000);
+    } else {
+      // If all players are dead in a multiplayer game, trigger failure message and start a new round.
+      this.#state = 'round_over';
+      this.onGameEvent('game_round_failed', this);
+      clearTimeout(this.#roundOverTimeout);
+      this.#roundOverTimeout = setTimeout(() => {
+        this.#startRound();
+      }, 5000);
     }
   }
 
