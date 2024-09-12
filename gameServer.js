@@ -266,13 +266,15 @@ function gameServer(app, port) {
         case 'player_ready_changed': {
           try {
             const { id, lobby: lobby_name } = clientMetadata.get(ws);
-            const lobby = LobbyManager.get(lobby_name);
-            lobby.setPlayerReady(id, data.ready);
-            if (lobby.allPlayersAreReady) lobby.startGame();
-            sendToClients(wss.clients, {
-              type: 'lobby_list_updated',
-              lobbies: LobbyManager.packageData(),
-            });
+            if (lobby_name) {
+              const lobby = LobbyManager.get(lobby_name);
+              lobby.setPlayerReady(id, data.ready);
+              if (lobby.allPlayersAreReady) lobby.startGame();
+              sendToClients(wss.clients, {
+                type: 'lobby_list_updated',
+                lobbies: LobbyManager.packageData(),
+              });
+            }
           } catch (error) {
             reportError(wss.clients, error);
           }
