@@ -31,6 +31,13 @@ function gameServer(app, port) {
               name,
               lobby: null,
             });
+            sendToClients(
+              [...wss.clients].filter((client) => client !== ws),
+              {
+                type: 'message_received',
+                message: `Client connected via websockets: ${name || uuid}`,
+              },
+            );
             console.log('Client connected via websockets: ', uuid);
           }
           break;
@@ -40,7 +47,7 @@ function gameServer(app, port) {
           const { uuid } = data;
           if (clientMetadata.has(ws)) {
             try {
-              const { id, lobby: lobby_name } = clientMetadata.get(ws);
+              const { id, name, lobby: lobby_name } = clientMetadata.get(ws);
               if (lobby_name) {
                 const lobby = LobbyManager.get(lobby_name);
                 if (lobby) {
@@ -54,6 +61,13 @@ function gameServer(app, port) {
                   });
                 }
               }
+              sendToClients(
+                [...wss.clients].filter((client) => client !== ws),
+                {
+                  type: 'message_received',
+                  message: `Client disconnected via websockets: ${name || uuid}`,
+                },
+              );
               console.log('Client disconnected via websockets: ', uuid);
             } catch (error) {
               reportError(wss.clients, error);
