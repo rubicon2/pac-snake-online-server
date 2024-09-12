@@ -169,6 +169,14 @@ socket.onmessage = (event) => {
       break;
     }
 
+    case 'single_player_game_over': {
+      if (gameOverlayElement) gameOverlayElement.remove();
+      gameOverlayElement = createGameOverlay();
+      gameOverlayElement.textContent = 'GAME OVER';
+      gameAreaElement.appendChild(gameOverlayElement);
+      break;
+    }
+
     case 'game_state_updated': {
       // Update the game display.
       if (gameAreaElement) refreshGamePage(json.game_state);

@@ -32,6 +32,9 @@ class Game {
   get players() {
     return this.#players;
   }
+  get alivePlayers() {
+    return [...this.#players.values()].filter((player) => player.snake.isAlive);
+  }
   // For getting list of clients connected to this game, and sending updates over websocket.
   get clients() {
     return [...this.#players.values()].map((player) => player.ws);
@@ -350,13 +353,24 @@ class Game {
               }
             }
             // If all players are dead and no-one won, deal with that.
-            if (this.snakes.length === 0) {
-              this.#state = 'round_over';
-              this.onGameEvent('game_round_failed', this);
-              clearTimeout(this.#roundOverTimeout);
-              this.#roundOverTimeout = setTimeout(() => {
-                this.#startRound();
-              }, 5000);
+            // But if it is a single-player game, end it with stats!
+            if (this.alivePlayers.length === 0) {
+              if (this.#players.size === 1) {
+                // If player dies in a singleplayer game.
+                this.#state = 'game_over';
+                this.onGameEvent('single_player_game_over', this);
+                setTimeout(() => {
+                  this.endGame();
+                }, 10000);
+              } else {
+                // If all players are dead in a multiplayer game.
+                this.#state = 'round_over';
+                this.onGameEvent('game_round_failed', this);
+                clearTimeout(this.#roundOverTimeout);
+                this.#roundOverTimeout = setTimeout(() => {
+                  this.#startRound();
+                }, 5000);
+              }
             }
           }
         }
