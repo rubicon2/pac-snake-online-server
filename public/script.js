@@ -253,7 +253,7 @@ function createLobbiesPage() {
   nameInput.type = 'text';
   nameInput.id = 'client-name';
   nameInput.name = 'client_name';
-  nameInput.ariaAutoComplete = false;
+  nameInput.autocomplete = 'off';
   nameChangeForm.appendChild(nameInput);
 
   const nameSubmit = document.createElement('button');
@@ -274,7 +274,7 @@ function createLobbiesPage() {
   lobbyNameInput.type = 'text';
   lobbyNameInput.id = 'lobby-name';
   lobbyNameInput.name = 'lobby_name';
-  lobbyNameInput.ariaAutoComplete = false;
+  lobbyNameInput.autocomplete = 'off';
   lobbyForm.appendChild(lobbyNameInput);
 
   const lobbySubmit = document.createElement('button');
