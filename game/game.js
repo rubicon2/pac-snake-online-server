@@ -261,9 +261,7 @@ class Game {
   }
 
   #getRoundWinner() {
-    const alivePlayers = [...this.#players.values()].filter(
-      (player) => player.snake.isAlive,
-    );
+    const alivePlayers = this.alivePlayers;
     if (alivePlayers.length === 1) {
       const lastPlayerStanding = alivePlayers[0];
       return lastPlayerStanding;
