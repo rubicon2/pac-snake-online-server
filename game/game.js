@@ -181,7 +181,7 @@ class Game {
         this.#state = 'running';
         this.onGameEvent('game_round_started', this);
         this.#spawnFood(SPAWN_FOOD_TIMEOUT_MS);
-        this.update();
+        this.#update();
       } else {
         this.#countdownValue--;
         if (this.#countdownValue === 0) this.#countdownValue = 'GO!';
@@ -380,13 +380,13 @@ class Game {
     }
   }
 
-  update() {
+  #update() {
     switch (this.#state) {
       case 'running': {
         this.#moveSnakes();
         this.onGameEvent('game_state_updated', this);
         clearTimeout(this.#updateTimeout);
-        this.#updateTimeout = setTimeout(() => this.update(), this.speed.ms);
+        this.#updateTimeout = setTimeout(() => this.#update(), this.speed.ms);
         break;
       }
     }
