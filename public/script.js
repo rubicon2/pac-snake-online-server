@@ -213,23 +213,27 @@ function createLobbiesPage() {
   refreshLobbyHeader(currentLobbyElement, 'the lobby list');
   div.appendChild(currentLobbyElement);
 
+  const mainButtons = document.createElement('div');
+  mainButtons.classList.add('buttons-horizontal');
+  div.appendChild(mainButtons);
+
   const readyButton = document.createElement('button');
   readyButton.type = 'button';
   readyButton.onclick = playerReady;
   readyButton.textContent = 'Ready';
-  div.appendChild(readyButton);
+  mainButtons.appendChild(readyButton);
 
   const notReadyButton = document.createElement('button');
   notReadyButton.type = 'button';
   notReadyButton.onclick = playerNotReady;
   notReadyButton.textContent = 'Not Ready';
-  div.appendChild(notReadyButton);
+  mainButtons.appendChild(notReadyButton);
 
   const leaveLobbyButton = document.createElement('button');
   leaveLobbyButton.type = 'button';
   leaveLobbyButton.onclick = leaveLobby;
   leaveLobbyButton.textContent = 'Leave Lobby';
-  div.appendChild(leaveLobbyButton);
+  mainButtons.appendChild(leaveLobbyButton);
 
   const nameChangeForm = document.createElement('form');
   nameChangeForm.onsubmit = requestNameChange;
@@ -475,39 +479,14 @@ function refreshLobbyListItems(element, lobbies) {
 
   // Now make the new ones.
   for (const lobby of lobbies) {
-    const { lobby_name, lobby_state, lobby_speed, player_count, players } =
-      lobby;
+    const { lobby_name, lobby_state, players } = lobby;
+    const isGameRunning = lobby_state != 'lobby';
+
     const li = document.createElement('li');
     li.innerText = lobby_name;
 
-    const isGameRunning = lobby_state != 'lobby';
-    const gameStatusText = isGameRunning
-      ? 'RUNNING'
-      : player_count === 4
-        ? 'FULL'
-        : 'JOINABLE';
-
-    const playerCount = document.createElement('span');
-    playerCount.innerText = ` ${player_count}/4 - ${gameStatusText}`;
-    li.appendChild(playerCount);
-
-    const joinButton = document.createElement('button');
-    joinButton.innerText = 'Join';
-    joinButton.onclick = () => joinLobby(lobby_name);
-    joinButton.disabled = isGameRunning;
-    li.appendChild(joinButton);
-
-    const closeButton = document.createElement('button');
-    closeButton.innerText = 'Close';
-    closeButton.onclick = () => closeLobby(lobby_name);
-    closeButton.disabled = isGameRunning;
-    li.appendChild(closeButton);
-
-    const changeSpeedButton = document.createElement('button');
-    changeSpeedButton.innerText = lobby_speed.name;
-    changeSpeedButton.onclick = () => changeLobbySpeed(lobby_name);
-    changeSpeedButton.disabled = isGameRunning;
-    li.appendChild(changeSpeedButton);
+    const lobbyInfo = createLobbyInfo(lobby, isGameRunning);
+    li.appendChild(lobbyInfo);
 
     if (Object.keys(players).length > 0)
       li.appendChild(
@@ -518,12 +497,68 @@ function refreshLobbyListItems(element, lobbies) {
   }
 }
 
+function createLobbyInfo(lobby, isGameRunning) {
+  const { lobby_name, lobby_speed, player_count } = lobby;
+
+  const div = document.createElement('div');
+  div.classList.add('lobby-info');
+
+  const mainInfo = document.createElement('div');
+  div.appendChild(mainInfo);
+
+  const gameStatusText = isGameRunning
+    ? 'RUNNING'
+    : player_count === 4
+      ? 'FULL'
+      : 'JOINABLE';
+
+  const playerCount = document.createElement('span');
+  playerCount.innerText = ` ${player_count}/4 - ${gameStatusText}`;
+  mainInfo.appendChild(playerCount);
+
+  const lobbyButtons = document.createElement('div');
+  lobbyButtons.classList.add('buttons-horizontal');
+  div.appendChild(lobbyButtons);
+
+  const joinButton = document.createElement('button');
+  joinButton.innerText = 'Join';
+  joinButton.onclick = () => joinLobby(lobby_name);
+  joinButton.disabled = isGameRunning;
+  lobbyButtons.appendChild(joinButton);
+
+  const closeButton = document.createElement('button');
+  closeButton.innerText = 'Close';
+  closeButton.onclick = () => closeLobby(lobby_name);
+  closeButton.disabled = isGameRunning;
+  lobbyButtons.appendChild(closeButton);
+
+  const changeSpeedButton = document.createElement('button');
+  changeSpeedButton.classList.add('speed-change-button');
+  changeSpeedButton.innerText = lobby_speed.name;
+  changeSpeedButton.onclick = () => changeLobbySpeed(lobby_name);
+  changeSpeedButton.disabled = isGameRunning;
+  lobbyButtons.appendChild(changeSpeedButton);
+
+  return div;
+}
+
 function createLobbyPlayerList(players, isGameRunning) {
   const ul = document.createElement('ul');
+  ul.classList.add('lobby-player-list');
   for (const player of players) {
     const li = document.createElement('li');
     li.style.backgroundColor = colorToString(player.color);
-    li.innerText = `${player.name} - ${isGameRunning ? 'PLAYING' : player.ready ? 'READY' : 'NOT READY'}`;
+    li.innerText = `${player.name}`;
+
+    const statusText = isGameRunning
+      ? 'PLAYING'
+      : player.ready
+        ? 'READY'
+        : 'NOT READY';
+
+    const statusDisplay = document.createElement('div');
+    statusDisplay.textContent = statusText;
+    li.appendChild(statusDisplay);
     ul.appendChild(li);
   }
   return ul;
