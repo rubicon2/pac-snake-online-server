@@ -184,11 +184,13 @@ socket.onmessage = (event) => {
     }
 
     case 'message_received': {
-      messagesElement.appendChild(
-        createMessage(
-          `${new Date(Date.now()).toLocaleTimeString()} - ${json.message}`,
-        ),
+      const newMessageElement = createMessage(
+        `${new Date(Date.now()).toLocaleTimeString()} - ${json.message}`,
       );
+      messagesElement.appendChild(newMessageElement);
+      setTimeout(() => {
+        newMessageElement.remove();
+      }, 10000);
       break;
     }
   }
