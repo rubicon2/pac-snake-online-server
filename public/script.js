@@ -1,4 +1,3 @@
-// import DOMPurify from '/libs/purify.min.js';
 const socket = new WebSocket('wss://pac-snake-online.adaptable.app/80');
 
 // Feel like the server should generate a uuid and send back to client when they connect?
