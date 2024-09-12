@@ -1,5 +1,5 @@
 // import DOMPurify from '/libs/purify.min.js';
-const socket = new WebSocket('ws://localhost:8080');
+const socket = new WebSocket('wss://pac-snake-online.adaptable.app/80');
 
 // Feel like the server should generate a uuid and send back to client when they connect?
 // Stop malicious users generating their own uuids.
