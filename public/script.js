@@ -35,6 +35,10 @@ socket.onclose = () => {
   );
 };
 
+socket.onerror = (error) => {
+  console.error(error);
+};
+
 addEventListener('keydown', (event) => {
   const { key } = event;
   switch (key) {
