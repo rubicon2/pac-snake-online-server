@@ -61,14 +61,6 @@ addEventListener('keydown', (event) => {
       );
       break;
     }
-
-    case 'r': {
-      socket.send(
-        JSON.stringify({
-          type: 'player_ready_toggled',
-        }),
-      );
-    }
   }
 });
 
