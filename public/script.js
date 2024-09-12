@@ -213,9 +213,13 @@ function createLobbiesPage() {
   refreshLobbyHeader(currentLobbyElement, 'the lobby list');
   div.appendChild(currentLobbyElement);
 
+  const lobbyControls = document.createElement('div');
+  lobbyControls.classList.add('lobby-controls');
+  div.appendChild(lobbyControls);
+
   const mainButtons = document.createElement('div');
   mainButtons.classList.add('buttons-horizontal');
-  div.appendChild(mainButtons);
+  lobbyControls.appendChild(mainButtons);
 
   const readyButton = document.createElement('button');
   readyButton.type = 'button';
@@ -236,8 +240,9 @@ function createLobbiesPage() {
   mainButtons.appendChild(leaveLobbyButton);
 
   const nameChangeForm = document.createElement('form');
+  nameChangeForm.classList.add('lobby-form');
   nameChangeForm.onsubmit = requestNameChange;
-  div.appendChild(nameChangeForm);
+  lobbyControls.appendChild(nameChangeForm);
 
   const nameLabel = document.createElement('label');
   nameLabel.htmlFor = 'client-name';
@@ -256,8 +261,9 @@ function createLobbiesPage() {
   nameChangeForm.appendChild(nameSubmit);
 
   const lobbyForm = document.createElement('form');
+  lobbyForm.classList.add('lobby-form');
   lobbyForm.onsubmit = requestNewLobby;
-  div.appendChild(lobbyForm);
+  lobbyControls.appendChild(lobbyForm);
 
   const lobbyNameLabel = document.createElement('label');
   lobbyNameLabel.htmlFor = 'lobby-name';

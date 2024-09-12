@@ -45,6 +45,18 @@ button {
   font-weight: 300;
 }
 
+.lobby-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.lobby-form {
+  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: max-content 200px 200px;
+  align-items: center;
+}
+
 #lobby-list {
   list-style: none;
   padding: 0;
