@@ -479,7 +479,13 @@ function refreshLobbyHeader(element, lobbyName) {
 function refreshLobbyListItems(element, lobbies) {
   // Remove any existing items.
   const existingListItems = document.querySelectorAll('#lobby-list > li');
-  for (const existingListItem of existingListItems) {
+  const existingListSeparators = document.querySelectorAll(
+    '.lobby-list-separator',
+  );
+  for (const existingListItem of [
+    ...existingListItems,
+    ...existingListSeparators,
+  ]) {
     existingListItem.remove();
   }
 
@@ -500,6 +506,10 @@ function refreshLobbyListItems(element, lobbies) {
       );
 
     element.appendChild(li);
+
+    const separator = document.createElement('div');
+    separator.classList.add('lobby-list-separator');
+    element.appendChild(separator);
   }
 }
 
