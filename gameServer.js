@@ -41,16 +41,18 @@ function gameServer(app, port) {
           if (clientMetadata.has(ws)) {
             try {
               const { id, lobby: lobby_name } = clientMetadata.get(ws);
-              const lobby = LobbyManager.get(lobby_name);
-              if (lobby) {
-                lobby.removePlayer(id);
-                clientMetadata.delete(ws);
-                if (lobby.state === 'lobby' && lobby.allPlayersAreReady)
-                  lobby.startGame();
-                sendToClients(wss.clients, {
-                  type: 'lobby_list_updated',
-                  lobbies: LobbyManager.packageData(),
-                });
+              if (lobby_name) {
+                const lobby = LobbyManager.get(lobby_name);
+                if (lobby) {
+                  lobby.removePlayer(id);
+                  clientMetadata.delete(ws);
+                  if (lobby.state === 'lobby' && lobby.allPlayersAreReady)
+                    lobby.startGame();
+                  sendToClients(wss.clients, {
+                    type: 'lobby_list_updated',
+                    lobbies: LobbyManager.packageData(),
+                  });
+                }
               }
               console.log('Client disconnected via websockets: ', uuid);
             } catch (error) {
@@ -64,26 +66,27 @@ function gameServer(app, port) {
           try {
             const trimmed = validator.trim(data.client_name);
             const client_name = validator.escape(trimmed);
-            if (client_name === '')
-              throw new Error(
-                `Player: ${clientMetadata.get(ws).id}: name rejected as it was blank.`,
-              );
-            clientMetadata.get(ws).name = client_name;
-            // Also update name on player object if this client is in a game.
-            // This is obviously bad. The name should be stored in only one place, not two.
-            const { id, lobby: lobby_name } = clientMetadata.get(ws);
-            if (lobby_name)
-              LobbyManager.get(lobby_name).players.get(id).name = client_name;
-            ws.send(
-              JSON.stringify({
+            if (client_name != '') {
+              clientMetadata.get(ws).name = client_name;
+              // Also update name on player object if this client is in a game.
+              // This is obviously bad. The name should be stored in only one place, not two.
+              const { id, lobby: lobby_name } = clientMetadata.get(ws);
+              if (lobby_name)
+                LobbyManager.get(lobby_name).players.get(id).name = client_name;
+              sendToClients([ws], {
                 type: 'name_updated',
                 client_name,
-              }),
-            );
-            sendToClients(wss.clients, {
-              type: 'lobby_list_updated',
-              lobbies: LobbyManager.packageData(),
-            });
+              });
+              sendToClients(wss.clients, {
+                type: 'lobby_list_updated',
+                lobbies: LobbyManager.packageData(),
+              });
+            } else {
+              sendToClients([ws], {
+                type: 'message_received',
+                message: `Player: ${clientMetadata.get(ws).id}: name rejected as it was blank.`,
+              });
+            }
           } catch (error) {
             reportError(wss.clients, error);
           }
@@ -106,7 +109,10 @@ function gameServer(app, port) {
               message,
             });
           } catch (error) {
-            reportError(wss.clients, error);
+            sendToClients([ws], {
+              type: 'message_received',
+              message: error.message,
+            });
           }
           break;
         }
@@ -127,21 +133,17 @@ function gameServer(app, port) {
             // Send client messages if they can't join the lobby for whatever reason.
             const newLobby = LobbyManager.get(lobby_name);
             if (newLobby.state !== 'lobby') {
-              ws.send(
-                JSON.stringify({
-                  type: 'message_received',
-                  message: `Cannot join ${lobby_name} as the game is already running.`,
-                }),
-              );
+              sendToClients([ws], {
+                type: 'message_received',
+                message: `Cannot join ${lobby_name} as the game is already running.`,
+              });
               break;
             }
             if (!newLobby.playerCanJoin(id)) {
-              ws.send(
-                JSON.stringify({
-                  type: 'message_received',
-                  message: `Cannot join ${lobby_name} as it is already full.`,
-                }),
-              );
+              sendToClients([ws], {
+                type: 'message_received',
+                message: `Cannot join ${lobby_name} as it is already full.`,
+              });
               break;
             }
 
@@ -170,28 +172,31 @@ function gameServer(app, port) {
           clientMetadata.get(ws).lobby = null;
 
           try {
-            if (!lobby_name)
-              throw new Error(
-                `Player: ${id} tried to leave lobby when not in a lobby.`,
+            if (lobby_name) {
+              const lobby = LobbyManager.get(lobby_name);
+              lobby.removePlayer(id);
+              ws.send(
+                JSON.stringify({
+                  type: 'left_lobby',
+                }),
               );
-            const lobby = LobbyManager.get(lobby_name);
-            lobby.removePlayer(id);
-            ws.send(
-              JSON.stringify({
-                type: 'left_lobby',
-              }),
-            );
-            const message = `${name} left lobby: ${lobby_name}.`;
-            console.log(message);
-            sendToClients(wss.clients, {
-              type: 'message_received',
-              message,
-            });
-            if (lobby.allPlayersAreReady) lobby.startGame();
-            sendToClients(wss.clients, {
-              type: 'lobby_list_updated',
-              lobbies: LobbyManager.packageData(),
-            });
+              const message = `${name} left lobby: ${lobby_name}.`;
+              console.log(message);
+              sendToClients(wss.clients, {
+                type: 'message_received',
+                message,
+              });
+              if (lobby.allPlayersAreReady) lobby.startGame();
+              sendToClients(wss.clients, {
+                type: 'lobby_list_updated',
+                lobbies: LobbyManager.packageData(),
+              });
+            } else {
+              sendToClients([ws], {
+                type: 'message_received',
+                message: `Player: ${id} tried to leave lobby when not in a lobby.`,
+              });
+            }
           } catch (error) {
             reportError(wss.clients, error);
           }
@@ -207,7 +212,7 @@ function gameServer(app, port) {
               type: 'lobby_list_updated',
               lobbies: LobbyManager.packageData(),
             });
-            const message = `Lobby closed by ${clientMetadata.get(ws).name}: ${lobby_name}.`;
+            const message = `Lobby closed by ${clientMetadata.get(ws).name || 'unnamed user'}: ${lobby_name}.`;
             console.log(message);
             sendToClients(wss.clients, {
               type: 'message_received',
@@ -223,16 +228,19 @@ function gameServer(app, port) {
           const { lobby_name } = data;
           try {
             const lobby = LobbyManager.get(lobby_name);
-            if (lobby.state === 'running') {
-              throw new Error(
-                'Cannot change game speed from lobby while a game is running.',
-              );
+            if (lobby.state !== 'running') {
+              LobbyManager.get(lobby_name).changeSpeed();
+              sendToClients(wss.clients, {
+                type: 'lobby_list_updated',
+                lobbies: LobbyManager.packageData(),
+              });
+            } else {
+              sendToClients([ws], {
+                type: 'message_received',
+                message:
+                  'Cannot change game speed from lobby while a game is running.',
+              });
             }
-            LobbyManager.get(lobby_name).changeSpeed();
-            sendToClients(wss.clients, {
-              type: 'lobby_list_updated',
-              lobbies: LobbyManager.packageData(),
-            });
           } catch (error) {
             reportError(wss.clients, error);
           }
@@ -240,22 +248,18 @@ function gameServer(app, port) {
         }
 
         case 'lobby_list_update_request': {
-          ws.send(
-            JSON.stringify({
-              type: 'lobby_list_updated',
-              lobbies: LobbyManager.packageData(),
-            }),
-          );
+          sendToClients([ws], {
+            type: 'lobby_list_updated',
+            lobbies: LobbyManager.packageData(),
+          });
           break;
         }
 
         case 'lobby_header_update_request': {
-          ws.send(
-            JSON.stringify({
-              type: 'lobby_header_updated',
-              lobby_name: clientMetadata.get(ws).lobby,
-            }),
-          );
+          sendToClients([ws], {
+            type: 'lobby_header_updated',
+            lobby_name: clientMetadata.get(ws).lobby,
+          });
           break;
         }
 
@@ -291,12 +295,10 @@ function gameServer(app, port) {
     });
 
     // Send initial list of lobbies to this client.
-    ws.send(
-      JSON.stringify({
-        type: 'lobby_list_updated',
-        lobbies: LobbyManager.packageData(),
-      }),
-    );
+    sendToClients([ws], {
+      type: 'lobby_list_updated',
+      lobbies: LobbyManager.packageData(),
+    });
   });
 
   return wss;
