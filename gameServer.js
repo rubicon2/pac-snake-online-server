@@ -16,6 +16,9 @@ function gameServer(app, port) {
   LobbyManager.setMaxLobbies(MAX_GAMES);
 
   wss.on('connection', (ws) => {
+    ws.isAlive = true;
+    ws.on('pong', heartbeat);
+
     ws.on('error', console.error);
 
     ws.on('message', (wsData) => {
@@ -329,6 +332,22 @@ function gameServer(app, port) {
       game_state: game.packageData(),
     });
   }
+
+  function heartbeat() {
+    this.isAlive = true;
+  }
+
+  const pingInterval = setInterval(() => {
+    for (const client of wss.clients) {
+      if (client.isAlive === false) return client.terminate();
+      client.isAlive = false;
+      client.ping();
+    }
+  }, 30000);
+
+  wss.on('close', () => {
+    clearInterval(pingInterval);
+  });
 
   return wss;
 }
