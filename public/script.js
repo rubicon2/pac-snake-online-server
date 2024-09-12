@@ -24,8 +24,16 @@ socket.onopen = () => {
   socket.send(JSON.stringify({ type: 'opened', uuid }));
 };
 
-window.onbeforeunload = () => {
-  socket.send(JSON.stringify({ type: 'closed', uuid }));
+socket.onclose = () => {
+  console.log('Disconnected from server.');
+  pageContentElement.remove();
+  pageContentElement = createLobbiesPage();
+  document.body.appendChild(pageContentElement);
+  messagesElement.appendChild(
+    createMessage(
+      `${new Date(Date.now()).toLocaleTimeString()} - Disconnected from server.`,
+    ),
+  );
 };
 
 addEventListener('keydown', (event) => {

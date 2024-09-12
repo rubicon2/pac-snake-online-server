@@ -21,6 +21,37 @@ function gameServer(app, port) {
 
     ws.on('error', console.error);
 
+    ws.on('close', () => {
+      if (clientMetadata.has(ws)) {
+        try {
+          const { id, name, lobby: lobby_name } = clientMetadata.get(ws);
+          if (lobby_name) {
+            const lobby = LobbyManager.get(lobby_name);
+            if (lobby) {
+              lobby.removePlayer(id);
+              clientMetadata.delete(ws);
+              if (lobby.state === 'lobby' && lobby.allPlayersAreReady)
+                lobby.startGame();
+              sendToClients(wss.clients, {
+                type: 'lobby_list_updated',
+                lobbies: LobbyManager.packageData(),
+              });
+            }
+          }
+          sendToClients(
+            [...wss.clients].filter((client) => client !== ws),
+            {
+              type: 'message_received',
+              message: `Client disconnected via websockets: ${name || id}`,
+            },
+          );
+          console.log('Client disconnected via websockets: ', id);
+        } catch (error) {
+          reportError(wss.clients, error);
+        }
+      }
+    });
+
     ws.on('message', (wsData) => {
       const { type, ...data } = JSON.parse(wsData);
 
@@ -42,39 +73,6 @@ function gameServer(app, port) {
               },
             );
             console.log('Client connected via websockets: ', uuid);
-          }
-          break;
-        }
-
-        case 'closed': {
-          const { uuid } = data;
-          if (clientMetadata.has(ws)) {
-            try {
-              const { id, name, lobby: lobby_name } = clientMetadata.get(ws);
-              if (lobby_name) {
-                const lobby = LobbyManager.get(lobby_name);
-                if (lobby) {
-                  lobby.removePlayer(id);
-                  clientMetadata.delete(ws);
-                  if (lobby.state === 'lobby' && lobby.allPlayersAreReady)
-                    lobby.startGame();
-                  sendToClients(wss.clients, {
-                    type: 'lobby_list_updated',
-                    lobbies: LobbyManager.packageData(),
-                  });
-                }
-              }
-              sendToClients(
-                [...wss.clients].filter((client) => client !== ws),
-                {
-                  type: 'message_received',
-                  message: `Client disconnected via websockets: ${name || uuid}`,
-                },
-              );
-              console.log('Client disconnected via websockets: ', uuid);
-            } catch (error) {
-              reportError(wss.clients, error);
-            }
           }
           break;
         }
