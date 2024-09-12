@@ -11,7 +11,7 @@ const {
 } = require('./data');
 
 require('dotenv').config();
-const MIN_PLAYERS = process.env.MIN_PLAYERS || 2;
+const MIN_PLAYERS = process.env.MIN_PLAYERS || 1;
 
 class Game {
   #updateTimeout = null;
