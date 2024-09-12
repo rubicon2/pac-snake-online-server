@@ -1,12 +1,10 @@
 const express = require('express');
-require('dotenv').config();
+const gameServer = require('./gameServer');
 
-const PORT = process.env.PORT || 80;
+require('dotenv').config();
+const PORT = process.env.PORT || 3000;
 
 const app = express();
-
-app.get('/', (req, res) => {
-  res.send('<h1>Hello, world</h1>');
-});
-
-app.listen(PORT);
+// public/index.html will automatically be sent to the http client.
+app.use(express.static('public'));
+const wss = gameServer(app, PORT);
