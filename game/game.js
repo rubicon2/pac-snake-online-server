@@ -146,9 +146,7 @@ class Game {
 
   #resetPlayerStats() {
     for (const player of this.#players.values()) {
-      player.longestSnakeLength = 0;
-      player.killCount = 0;
-      player.deathCount = 0;
+      player.resetStats();
     }
   }
 

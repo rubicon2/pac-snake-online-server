@@ -11,6 +11,13 @@ class Player {
     this.deathCount = 0;
   }
 
+  resetStats() {
+    this.roundsWon = 0;
+    this.longestSnakeLength = 3;
+    this.killCount = 0;
+    this.deathCount = 0;
+  }
+
   packageData() {
     return {
       name: this.name,
