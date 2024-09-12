@@ -71,6 +71,7 @@ body {
   gap: 1rem;
   color: white;
   font-size: 2rem;
+  user-select: none;
 }
 
 .overlay * {
