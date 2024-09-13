@@ -23,8 +23,9 @@ socket.onopen = () => {
   socket.send(JSON.stringify({ type: 'opened', uuid }));
 };
 
-socket.onclose = () => {
-  console.log('Disconnected from server.');
+socket.onclose = (event) => {
+  console.log(`Disconnected from server due to: ${event.reason}`);
+  console.log(event);
   pageContentElement.remove();
   pageContentElement = createLobbiesPage();
   document.body.appendChild(pageContentElement);
