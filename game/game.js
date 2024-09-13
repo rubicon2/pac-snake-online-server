@@ -47,8 +47,13 @@ class Game {
     return this.#players.size < 4 && !this.#players.has(id);
   }
   addPlayer(id, name, ws) {
-    // Server should check before trying to add, but just in case.
-    if (this.#state === 'lobby' && this.playerCanJoin(id)) {
+    // If we are reconnecting a player that has been disconnected, update their websocket.
+    // Although really, this doesn't need to be here anymore. We could just update all players from here with the ids,
+    // plop back onto the gameServer and it can map the ids to the websockets and names of each player...
+    // Removes so much jank... WHY DIDN'T I USE THE IDS IN THE FIRST PLACE??
+    if (this.#state !== 'lobby' && this.#players.has(id)) {
+      this.#players.get(id).ws = ws;
+    } else if (this.#state === 'lobby' && this.playerCanJoin(id)) {
       // As color is picked before next player is added to array, do not need to do size - 1!
       // If player leaves, colors must be reassigned.
       const playerColor = PLAYER_SETUP_DATA[this.#players.size].color;

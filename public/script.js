@@ -1,4 +1,5 @@
 const websocketUrl = 'wss://pac-snake-online.adaptable.app:80';
+// const websocketUrl = 'ws://localhost:80';
 let socket = new WebSocket(websocketUrl);
 
 // Feel like the server should generate a uuid and send back to client when they connect?
@@ -8,7 +9,7 @@ let socket = new WebSocket(websocketUrl);
 // How about, if there is a cookie for the uuid that is sent, if not the server generates a UUID and sends it back to the client.
 // Then the client saves to cookies, and the server also adds it to a set of approved uuids.
 // When the client tries to connect, the server will only allow the connection if the uuid provided by the client exists in the server's uuid set.
-const uuid = self.crypto.randomUUID();
+let uuid = null;
 
 let pageContentElement = document.getElementById('content');
 let currentLobbyElement = document.getElementById('current-lobby');
@@ -24,17 +25,36 @@ socket.onopen = () => {
   socket.send(JSON.stringify({ type: 'opened', uuid }));
 };
 
+function attemptReconnect(event) {
+  if (event.code === 1006) {
+    const max_attempts = 5;
+    let attempts = 0;
+    while (attempts < max_attempts) {
+      socket = new WebSocket(websocketUrl);
+      // But server does everything based on ws... SO THAT WAS A MISTAKE THEN, WASN'T IT!
+      // Should have done it with client sending ids on every message all along...
+    }
+  }
+}
+
 socket.onclose = (event) => {
-  console.log(`Disconnected from server due to: ${event.reason}`);
-  console.log(event);
-  pageContentElement.remove();
-  pageContentElement = createLobbiesPage();
-  document.body.appendChild(pageContentElement);
-  messagesElement.appendChild(
-    createMessage(
-      `${new Date(Date.now()).toLocaleTimeString()} - Disconnected from server.`,
-    ),
-  );
+  // Attempt to reconnect...
+  socket = new WebSocket(websocketUrl);
+  if (socket.readyState != WebSocket.OPEN) {
+    // If that fails...
+    console.log(
+      `Disconnected from server due to: ${event.reason !== '' || 'no reason specified.'}`,
+    );
+    console.log(event);
+    pageContentElement.remove();
+    pageContentElement = createLobbiesPage();
+    document.body.appendChild(pageContentElement);
+    messagesElement.appendChild(
+      createMessage(
+        `${new Date(Date.now()).toLocaleTimeString()} - Disconnected from server.`,
+      ),
+    );
+  }
 };
 
 socket.onerror = (error) => {
@@ -46,21 +66,33 @@ addEventListener('keydown', (event) => {
   switch (key) {
     case 'w': {
       socket.send(
-        JSON.stringify({ type: 'player_direction_changed', direction: 'up' }),
+        JSON.stringify({
+          type: 'player_direction_changed',
+          uuid,
+          direction: 'up',
+        }),
       );
       break;
     }
 
     case 'a': {
       socket.send(
-        JSON.stringify({ type: 'player_direction_changed', direction: 'left' }),
+        JSON.stringify({
+          type: 'player_direction_changed',
+          uuid,
+          direction: 'left',
+        }),
       );
       break;
     }
 
     case 's': {
       socket.send(
-        JSON.stringify({ type: 'player_direction_changed', direction: 'down' }),
+        JSON.stringify({
+          type: 'player_direction_changed',
+          uuid,
+          direction: 'down',
+        }),
       );
       break;
     }
@@ -69,6 +101,7 @@ addEventListener('keydown', (event) => {
       socket.send(
         JSON.stringify({
           type: 'player_direction_changed',
+          uuid,
           direction: 'right',
         }),
       );
@@ -80,6 +113,11 @@ addEventListener('keydown', (event) => {
 socket.onmessage = (event) => {
   const json = JSON.parse(event.data);
   switch (json.type) {
+    case 'uuid_received': {
+      uuid = json.uuid;
+      break;
+    }
+
     case 'lobby_list_updated': {
       refreshLobbyListItems(lobbyListElement, json.lobbies);
       break;
@@ -590,11 +628,11 @@ function createLobbyPlayerList(players, isGameRunning) {
 }
 
 function requestLobbyHeaderUpdate() {
-  socket.send(JSON.stringify({ type: 'lobby_header_update_request' }));
+  socket.send(JSON.stringify({ type: 'lobby_header_update_request', uuid }));
 }
 
 function requestLobbyListUpdate() {
-  socket.send(JSON.stringify({ type: 'lobby_list_update_request' }));
+  socket.send(JSON.stringify({ type: 'lobby_list_update_request', uuid }));
 }
 
 function requestNameChange(event) {
@@ -602,7 +640,9 @@ function requestNameChange(event) {
   const { client_name } = Object.fromEntries(
     new FormData(event.currentTarget).entries(),
   );
-  socket.send(JSON.stringify({ type: 'name_change_requested', client_name }));
+  socket.send(
+    JSON.stringify({ type: 'name_change_requested', uuid, client_name }),
+  );
 }
 
 function requestNewLobby(event) {
@@ -610,35 +650,43 @@ function requestNewLobby(event) {
   const { lobby_name } = Object.fromEntries(
     new FormData(event.currentTarget).entries(),
   );
-  socket.send(JSON.stringify({ type: 'new_lobby_requested', lobby_name }));
+  socket.send(
+    JSON.stringify({ type: 'new_lobby_requested', uuid, lobby_name }),
+  );
 }
 
 function joinLobby(lobby_name) {
   socket.send(
-    JSON.stringify({ type: 'player_join_lobby_request', lobby_name }),
+    JSON.stringify({ type: 'player_join_lobby_request', uuid, lobby_name }),
   );
 }
 
 function leaveLobby() {
-  socket.send(JSON.stringify({ type: 'player_leave_lobby_request' }));
+  socket.send(JSON.stringify({ type: 'player_leave_lobby_request', uuid }));
 }
 
 function closeLobby(lobby_name) {
-  socket.send(JSON.stringify({ type: 'close_lobby_request', lobby_name }));
+  socket.send(
+    JSON.stringify({ type: 'close_lobby_request', uuid, lobby_name }),
+  );
 }
 
 function changeLobbySpeed(lobby_name) {
   socket.send(
-    JSON.stringify({ type: 'change_lobby_speed_request', lobby_name }),
+    JSON.stringify({ type: 'change_lobby_speed_request', uuid, lobby_name }),
   );
 }
 
 function playerReady() {
-  socket.send(JSON.stringify({ type: 'player_ready_changed', ready: true }));
+  socket.send(
+    JSON.stringify({ type: 'player_ready_changed', uuid, ready: true }),
+  );
 }
 
 function playerNotReady() {
-  socket.send(JSON.stringify({ type: 'player_ready_changed', ready: false }));
+  socket.send(
+    JSON.stringify({ type: 'player_ready_changed', uuid, ready: false }),
+  );
 }
 
 pageContentElement = createLobbiesPage();
