@@ -1,4 +1,5 @@
-const socket = new WebSocket('wss://pac-snake-online.adaptable.app/80');
+const websocketUrl = 'wss://pac-snake-online.adaptable.app:80';
+let socket = new WebSocket(websocketUrl);
 
 // Feel like the server should generate a uuid and send back to client when they connect?
 // Stop malicious users generating their own uuids.
