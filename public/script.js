@@ -1,4 +1,4 @@
-const websocketUrl = 'wss://pac-snake-online.adaptable.app:80';
+const websocketUrl = 'wss://pac-snake-online.adaptable.app:443';
 // const websocketUrl = 'ws://localhost:80';
 let socket = new WebSocket(websocketUrl);
 
