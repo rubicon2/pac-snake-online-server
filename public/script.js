@@ -29,21 +29,21 @@ function handleSocketClose() {
   // Attempt to reconnect...
   socket = new WebSocket(websocketUrl);
   setupSocket();
-  if (socket.readyState != WebSocket.OPEN) {
-    // If that fails...
-    console.log(
-      `Disconnected from server due to: ${event.reason !== '' || 'no reason specified.'}`,
-    );
-    console.log(event);
-    pageContentElement.remove();
-    pageContentElement = createLobbiesPage();
-    document.body.appendChild(pageContentElement);
-    messagesElement.appendChild(
-      createMessage(
-        `${new Date(Date.now()).toLocaleTimeString()} - Disconnected from server.`,
-      ),
-    );
-  }
+  // if (socket.readyState != WebSocket.OPEN) {
+  //   // If that fails...
+  //   console.log(
+  //     `Disconnected from server due to: ${event.reason !== '' || 'no reason specified.'}`,
+  //   );
+  //   console.log(event);
+  //   pageContentElement.remove();
+  //   pageContentElement = createLobbiesPage();
+  //   document.body.appendChild(pageContentElement);
+  //   messagesElement.appendChild(
+  //     createMessage(
+  //       `${new Date(Date.now()).toLocaleTimeString()} - Disconnected from server.`,
+  //     ),
+  //   );
+  // }
 }
 
 function handleSocketError(event) {
