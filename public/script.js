@@ -21,25 +21,14 @@ let gameOverlayElement = null;
 
 const MESSAGE_DISPLAY_TIME = 10000;
 
-socket.onopen = () => {
+function handleSocketOpen() {
   socket.send(JSON.stringify({ type: 'opened', uuid }));
-};
-
-function attemptReconnect(event) {
-  if (event.code === 1006) {
-    const max_attempts = 5;
-    let attempts = 0;
-    while (attempts < max_attempts) {
-      socket = new WebSocket(websocketUrl);
-      // But server does everything based on ws... SO THAT WAS A MISTAKE THEN, WASN'T IT!
-      // Should have done it with client sending ids on every message all along...
-    }
-  }
 }
 
-socket.onclose = (event) => {
+function handleSocketClose() {
   // Attempt to reconnect...
   socket = new WebSocket(websocketUrl);
+  setupSocket();
   if (socket.readyState != WebSocket.OPEN) {
     // If that fails...
     console.log(
@@ -55,11 +44,19 @@ socket.onclose = (event) => {
       ),
     );
   }
-};
+}
 
-socket.onerror = (error) => {
-  console.error(error);
-};
+function handleSocketError(event) {
+  console.error(event);
+}
+
+function setupSocket() {
+  socket.onopen = handleSocketOpen;
+  socket.onclose = handleSocketClose;
+  socket.onerror = handleSocketError;
+}
+
+setupSocket();
 
 addEventListener('keydown', (event) => {
   const { key } = event;
