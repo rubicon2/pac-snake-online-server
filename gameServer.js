@@ -1,395 +1,262 @@
-const { WebSocketServer } = require('ws');
+const socketIO = require('socket.io');
 const validator = require('validator');
-
 const LobbyManager = require('./lobbyManager');
-const { sendToClients } = require('./wsUtils');
 
-require('dotenv').config();
-const MAX_GAMES = process.env.MAX_GAMES || 4;
-
-// ws object maps to: time_connected, id, name, lobby_name, which can be used to find the game from the games map.
-// WRONG!
-// if a client disconnects and reconnects, it will be a different websocket, and the information will all be bad bads.
-// so map id to ws, and all that other gubbins.
+// Map uuid to sockets, etc. as the socket will change between connections, but the client will make sure the uuid stays the same.
 const clientMetadata = new Map();
 
-// app.listen() returns a nodejs httpServer, which wss can piggyback on the same port.
-function gameServer(app, port) {
-  const wss = new WebSocketServer({ server: app.listen(port) });
-  LobbyManager.setMaxLobbies(MAX_GAMES);
-
-  wss.on('connection', (ws) => {
-    ws.isAlive = true;
-    ws.on('pong', heartbeat);
-
-    ws.on('error', console.error);
-
-    let closeDelay = null;
-
-    ws.on('close', (stuff) => {
-      closeDelay = setTimeout(() => {
-        // Only want this to happen if client is really disconnected and not about to reconnect.
-        try {
-          const keys = [...clientMetadata.keys()];
-          const values = [...clientMetadata.values()];
-          for (let i = 0; i < keys.length; i++) {
-            const uuid = keys[i];
-            const data = values[i];
-            if (ws === data.ws) {
-              if (data.lobby) {
-                const lobby = LobbyManager.get(data.lobby);
-                lobby.removePlayer(uuid);
-                if (lobby.state === 'lobby' && lobby.allPlayersAreReady)
-                  lobby.startGame();
-                sendToClients(wss.clients, {
-                  type: 'lobby_list_updated',
-                  lobbies: LobbyManager.packageData(),
-                });
-              }
-              clientMetadata.delete(uuid);
-              break;
-            }
-          }
-          sendToClients(
-            [...wss.clients].filter((client) => client !== ws),
-            {
-              type: 'message_received',
-              message: `Client disconnected via websockets: ${uuid}`,
-            },
-          );
-          console.log('Client disconnected via websockets: ', uuid);
-        } catch (error) {
-          reportError(wss.clients, error);
-        }
-      }, 10000);
-    });
-
-    ws.on('message', (wsData) => {
-      const { type, ...data } = JSON.parse(wsData);
-      let { uuid } = data;
-
-      switch (type) {
-        case 'opened': {
-          // If falsy uuid was provided by client, generate one and send back.
-          if (!uuid) {
-            uuid = crypto.randomUUID();
-            // Make sure the uuid doesn't already exist (small chance, but non-zero)
-            while (clientMetadata.has(uuid)) {
-              uuid = crypto.randomUUID();
-            }
-            // Send back to client so it can use with all messages.
-            sendToClients([ws], {
-              type: 'uuid_received',
-              uuid,
-            });
-          }
-          // Now create meta data for this client.
-          if (!clientMetadata.has(uuid)) {
-            clientMetadata.set(uuid, {
-              ws,
-              time_connected: Date.now(),
-              name: null,
-              lobby: null,
-            });
-            sendToClients(
-              [...wss.clients].filter((client) => client !== ws),
-              {
-                type: 'message_received',
-                message: `Client connected via websockets: ${uuid}`,
-              },
-            );
-            console.log('Client connected via websockets: ', uuid);
-          } else {
-            // Client must have reconnected...
-            // Update the client's metadata with the new socket.
-            clientMetadata.get(uuid).ws = ws;
-            console.log('Client reconnected via websockets: ', uuid);
-          }
-          clearTimeout(closeDelay);
-          break;
-        }
-
-        case 'name_change_requested': {
-          try {
-            const trimmed = validator.trim(data.client_name);
-            const client_name = validator.escape(trimmed);
-            if (client_name != '') {
-              clientMetadata.get(uuid).name = client_name;
-              // Also update name on player object if this client is in a game.
-              // This is obviously bad. The name should be stored in only one place, not two.
-              const { lobby: lobby_name } = clientMetadata.get(uuid);
-              if (lobby_name)
-                LobbyManager.get(lobby_name).players.get(uuid).name =
-                  client_name;
-              sendToClients([ws], {
-                type: 'name_updated',
-                client_name,
-              });
-              sendToClients(wss.clients, {
-                type: 'lobby_list_updated',
-                lobbies: LobbyManager.packageData(),
-              });
-            } else {
-              sendToClients([ws], {
-                type: 'message_received',
-                message: `Player: ${uuid}: name rejected as it was blank.`,
-              });
-            }
-          } catch (error) {
-            reportError(wss.clients, error);
-          }
-          break;
-        }
-
-        case 'new_lobby_requested': {
-          const lobby_name = validator.escape(data.lobby_name);
-
-          try {
-            LobbyManager.add(lobby_name, sendGameEventToPlayers);
-            sendToClients(wss.clients, {
-              type: 'lobby_list_updated',
-              lobbies: LobbyManager.packageData(),
-            });
-            const message = `New lobby was created by ${clientMetadata.get(uuid).name || 'unnamed user'}: ${lobby_name}.`;
-            console.log(message);
-            sendToClients(wss.clients, {
-              type: 'message_received',
-              message,
-            });
-          } catch (error) {
-            sendToClients([ws], {
-              type: 'message_received',
-              message: error.message,
-            });
-          }
-          break;
-        }
-
-        case 'player_join_lobby_request': {
-          const { lobby_name } = data;
-
-          try {
-            const { name, lobby: previousLobby } = clientMetadata.get(uuid);
-            // If player has not set a name, do not allow them to join a lobby.
-            if (!name)
-              throw new Error(
-                `Player: ${uuid} tried to join a lobby: you must set a name first.`,
-              );
-            // If player is already in a lobby, remove them.
-            if (previousLobby)
-              LobbyManager.get(previousLobby).removePlayer(uuid);
-
-            // Send client messages if they can't join the lobby for whatever reason.
-            const newLobby = LobbyManager.get(lobby_name);
-            if (newLobby.state !== 'lobby') {
-              sendToClients([ws], {
-                type: 'message_received',
-                message: `Cannot join ${lobby_name} as the game is already running.`,
-              });
-              break;
-            }
-            if (!newLobby.playerCanJoin(uuid)) {
-              sendToClients([ws], {
-                type: 'message_received',
-                message: `Cannot join ${lobby_name} as it is already full.`,
-              });
-              break;
-            }
-
-            // Now join the requested lobby if the game is not running and there are spots free.
-            clientMetadata.get(uuid).lobby = lobby_name;
-            newLobby.addPlayer(uuid, name, ws);
-            const message = `${name} joined lobby: ${lobby_name}.`;
-            console.log(message);
-            sendToClients(wss.clients, {
-              type: 'message_received',
-              message,
-            });
-            ws.send(JSON.stringify({ type: 'joined_lobby', lobby_name }));
-            sendToClients(wss.clients, {
-              type: 'lobby_list_updated',
-              lobbies: LobbyManager.packageData(),
-            });
-          } catch (error) {
-            reportError(wss.clients, error);
-          }
-          break;
-        }
-
-        case 'player_leave_lobby_request': {
-          const { name, lobby: lobby_name } = clientMetadata.get(uuid);
-          clientMetadata.get(uuid).lobby = null;
-
-          try {
-            if (lobby_name) {
-              const lobby = LobbyManager.get(lobby_name);
-              lobby.removePlayer(uuid);
-              ws.send(
-                JSON.stringify({
-                  type: 'left_lobby',
-                }),
-              );
-              const message = `${name} left lobby: ${lobby_name}.`;
-              console.log(message);
-              sendToClients(wss.clients, {
-                type: 'message_received',
-                message,
-              });
-              if (lobby.allPlayersAreReady) lobby.startGame();
-              sendToClients(wss.clients, {
-                type: 'lobby_list_updated',
-                lobbies: LobbyManager.packageData(),
-              });
-            } else {
-              sendToClients([ws], {
-                type: 'message_received',
-                message: `Player: ${uuid} tried to leave lobby when not in a lobby.`,
-              });
-            }
-          } catch (error) {
-            reportError(wss.clients, error);
-          }
-          break;
-        }
-
-        case 'close_lobby_request': {
-          const { lobby_name } = data;
-
-          try {
-            LobbyManager.delete(lobby_name);
-            sendToClients(wss.clients, {
-              type: 'lobby_list_updated',
-              lobbies: LobbyManager.packageData(),
-            });
-            const message = `Lobby closed by ${clientMetadata.get(uuid).name || 'unnamed user'}: ${lobby_name}.`;
-            console.log(message);
-            sendToClients(wss.clients, {
-              type: 'message_received',
-              message,
-            });
-          } catch (error) {
-            reportError(wss.clients, error);
-          }
-          break;
-        }
-
-        case 'change_lobby_speed_request': {
-          const { lobby_name } = data;
-          try {
-            const lobby = LobbyManager.get(lobby_name);
-            if (lobby.state !== 'running') {
-              LobbyManager.get(lobby_name).changeSpeed();
-              sendToClients(wss.clients, {
-                type: 'lobby_list_updated',
-                lobbies: LobbyManager.packageData(),
-              });
-            } else {
-              sendToClients([ws], {
-                type: 'message_received',
-                message:
-                  'Cannot change game speed from lobby while a game is running.',
-              });
-            }
-          } catch (error) {
-            reportError(wss.clients, error);
-          }
-          break;
-        }
-
-        case 'lobby_list_update_request': {
-          sendToClients([ws], {
-            type: 'lobby_list_updated',
-            lobbies: LobbyManager.packageData(),
-          });
-          break;
-        }
-
-        case 'lobby_header_update_request': {
-          sendToClients([ws], {
-            type: 'lobby_header_updated',
-            lobby_name: clientMetadata.get(uuid).lobby,
-          });
-          break;
-        }
-
-        case 'player_ready_changed': {
-          try {
-            const { lobby: lobby_name } = clientMetadata.get(uuid);
-            if (lobby_name) {
-              const lobby = LobbyManager.get(lobby_name);
-              lobby.setPlayerReady(uuid, data.ready);
-              if (lobby.allPlayersAreReady) lobby.startGame();
-              sendToClients(wss.clients, {
-                type: 'lobby_list_updated',
-                lobbies: LobbyManager.packageData(),
-              });
-            }
-          } catch (error) {
-            reportError(wss.clients, error);
-          }
-          break;
-        }
-
-        case 'player_direction_changed': {
-          try {
-            const { lobby: lobby_name } = clientMetadata.get(uuid);
-            if (lobby_name) {
-              const lobby = LobbyManager.get(lobby_name);
-              lobby.players.get(uuid).snake.handleInput(data.direction);
-            }
-          } catch (error) {
-            reportError(wss.clients, error);
-          }
-          break;
-        }
-      }
-    });
-
-    // Send initial list of lobbies to this client.
-    sendToClients([ws], {
-      type: 'lobby_list_updated',
-      lobbies: LobbyManager.packageData(),
-    });
+function gameServer(httpServer) {
+  const io = socketIO(httpServer, {
+    cors: {
+      origin: [process.env.CLIENT_URL],
+    },
+    connectionStateRecovery: {},
   });
 
   function sendGameEventToPlayers(type, game) {
     if (type === 'game_ended') {
-      sendToClients(wss.clients, {
-        type: 'lobby_list_updated',
-        lobbies: LobbyManager.packageData(),
-      });
+      io.emit('lobby_list_updated', LobbyManager.packageData());
     }
-    sendToClients(game.clients, {
-      type,
-      game_state: game.packageData(),
+    io.emit(type, game.packageData());
+  }
+
+  io.on('connection', (client) => {
+    client.on('opened', (uuid) => {
+      let new_uuid = uuid;
+      // If no uuid was provided by client, generate one and send back.
+      if (!new_uuid) {
+        new_uuid = crypto.randomUUID();
+        // Make sure the uuid doesn't already exist (small chance, but non-zero).
+        while (clientMetadata.has(new_uuid)) {
+          new_uuid = crypto.randomUUID();
+        }
+        // Send back to client so it can use with all future messages.
+        client.emit('uuid_received', new_uuid);
+      }
+
+      // Now create metadata for this client.
+      if (!clientMetadata.has(new_uuid)) {
+        clientMetadata.set(new_uuid, {
+          ws: client,
+          time_connected: Date.now(),
+          name: null,
+          lobby: null,
+        });
+
+        io.emit(
+          'message_received',
+          `Client connected via socket.io: ${new_uuid}`,
+        );
+        console.log('Client connected via socket.io: ', new_uuid);
+      } else {
+        // If a client has connected and provided an existing uuid, they must have reconnected...
+        // Update the client's metadata with the new socket.
+        clientMetadata.get(new_uuid).ws = client;
+        console.log('Client reconnected via socket.io: ', new_uuid);
+      }
     });
-  }
 
-  function heartbeat() {
-    this.isAlive = true;
-  }
+    client.on('disconnect', () => {
+      try {
+        const keys = [...clientMetadata.keys()];
+        const values = [...clientMetadata.values()];
+        let uuid = null;
+        for (let i = 0; i < keys.length; i++) {
+          uuid = keys[i];
+          const data = values[i];
+          if (client === data.ws) {
+            if (data.lobby) {
+              const lobby = LobbyManager.get(data.lobby);
+              lobby.removePlayer(uuid);
+              if (lobby.state === 'lobby' && lobby.allPlayersAreReady)
+                lobby.startGame();
+              io.emit('lobby_list_updated', LobbyManager.packageData());
+            }
+            clientMetadata.delete(uuid);
+            break;
+          }
+        }
+        io.emit(
+          'message_received',
+          `Client disconnected via socket.io: ${uuid}`,
+        );
+        console.log('Client disconnected via socket.io: ', uuid);
+      } catch (error) {
+        reportError(io, error);
+      }
+    });
 
-  const pingInterval = setInterval(() => {
-    for (const client of wss.clients) {
-      if (client.isAlive === false) return client.terminate();
-      client.isAlive = false;
-      client.ping();
-    }
-  }, 10000);
+    client.on('name_change_requested', (uuid, name) => {
+      try {
+        const trimmed = validator.trim(name);
+        const client_name = validator.escape(trimmed);
+        if (client_name != '') {
+          clientMetadata.get(uuid).name = client_name;
+          // Also update name on player object if this client is in a game.
+          // This is obviously bad. The name should be stored in only one place, not two.
+          const { lobby: lobby_name } = clientMetadata.get(uuid);
+          if (lobby_name)
+            LobbyManager.get(lobby_name).players.get(uuid).name = client_name;
 
-  wss.on('close', () => {
-    clearInterval(pingInterval);
+          client.emit('name_updated', client_name);
+          io.emit('lobby_list_updated', LobbyManager.packageData());
+        } else {
+          client.emit(
+            'message_received',
+            `Player: ${uuid}: name rejected as it was blank.`,
+          );
+        }
+      } catch (error) {
+        reportError(io, error);
+      }
+    });
+
+    client.on('new_lobby_requested', (uuid, lobby_name) => {
+      const escaped_lobby_name = validator.escape(lobby_name);
+      try {
+        LobbyManager.add(escaped_lobby_name, sendGameEventToPlayers);
+        io.emit('lobby_list_updated', LobbyManager.packageData());
+        const message = `New lobby was created by ${clientMetadata.get(uuid).name || 'unnamed user'}: ${escaped_lobby_name}.`;
+        console.log(message);
+        io.emit('message_received', message);
+      } catch (error) {
+        io.emit('message_received', error.message);
+      }
+    });
+
+    client.on('close_lobby_requested', (uuid, lobby_name) => {
+      try {
+        LobbyManager.delete(lobby_name);
+        io.emit('lobby_list_updated', LobbyManager.packageData());
+        const message = `Lobby closed by ${clientMetadata.get(uuid).name || 'unnamed user'}: ${lobby_name}.`;
+        console.log(message);
+        io.emit('message_received', message);
+      } catch (error) {
+        reportError(io, error);
+      }
+    });
+
+    client.on('player_join_lobby_requested', (uuid, lobby_name) => {
+      try {
+        const { name, lobby: previousLobby } = clientMetadata.get(uuid);
+        // If player has not set a name, do not allow them to join a lobby.
+        if (!name)
+          throw new Error(
+            `Player: ${uuid} tried to join a lobby: you must set a name first.`,
+          );
+        // If player is already in a lobby, remove them.
+        if (previousLobby) LobbyManager.get(previousLobby).removePlayer(uuid);
+
+        // Send client messages if they can't join the lobby for whatever reason.
+        const newLobby = LobbyManager.get(lobby_name);
+        if (newLobby.state !== 'lobby')
+          client.emit(
+            'message_received',
+            `Cannot join ${lobby_name} as the game is already running.`,
+          );
+        if (!newLobby.playerCanJoin(uuid))
+          client.emit(
+            'message_received',
+            `Cannot join ${lobby_name} as it is already full.`,
+          );
+
+        // Now join the requested lobby if the game is not running and there are spots free.
+        clientMetadata.get(uuid).lobby = lobby_name;
+        newLobby.addPlayer(uuid, name, client);
+        const message = `${name} joined lobby: ${lobby_name}.`;
+        console.log(message);
+        io.emit('message_received', message);
+        client.emit('joined_lobby', lobby_name);
+        io.emit('lobby_list_updated', LobbyManager.packageData());
+      } catch (error) {
+        reportError(io, error);
+      }
+    });
+
+    client.on('player_leave_lobby_requested', (uuid) => {
+      const { name, lobby: lobby_name } = clientMetadata.get(uuid);
+      clientMetadata.get(uuid).lobby = null;
+
+      try {
+        if (lobby_name) {
+          const lobby = LobbyManager.get(lobby_name);
+          lobby.removePlayer(uuid);
+          client.emit('left_lobby');
+          const message = `${name} left lobby: ${lobby_name}.`;
+          console.log(message);
+          io.emit('message_received', message);
+          if (lobby.allPlayersAreReady) lobby.startGame();
+          io.emit('lobby_list_updated', LobbyManager.packageData());
+        } else {
+          client.emit(
+            'message_received',
+            `Player: ${uuid} tried to leave lobby when not in a lobby.`,
+          );
+        }
+      } catch (error) {
+        reportError(io, error);
+      }
+    });
+
+    client.on('change_lobby_speed_requested', (uuid, lobby_name) => {
+      try {
+        const lobby = LobbyManager.get(lobby_name);
+        if (lobby.state !== 'running') {
+          LobbyManager.get(lobby_name).changeSpeed();
+          io.emit('lobby_list_updated', LobbyManager.packageData());
+        } else {
+          client.emit(
+            'message_received',
+            'Cannot change game speed from lobby while a game is running.',
+          );
+        }
+      } catch (error) {
+        reportError(io, error);
+      }
+    });
+
+    client.on('lobby_list_update_requested', () => {
+      client.emit('lobby_list_updated', LobbyManager.packageData());
+    });
+
+    client.on('lobby_header_update_requested', (uuid) => {
+      client.emit('lobby_header_updated', clientMetadata.get(uuid).lobby);
+    });
+
+    client.on('player_ready_changed', (uuid, ready) => {
+      try {
+        const { lobby: lobby_name } = clientMetadata.get(uuid);
+        if (lobby_name) {
+          const lobby = LobbyManager.get(lobby_name);
+          lobby.setPlayerReady(uuid, ready);
+          if (lobby.allPlayersAreReady) lobby.startGame();
+          io.emit('lobby_list_updated', LobbyManager.packageData());
+        }
+      } catch (error) {
+        reportError(io, error);
+      }
+    });
+
+    client.on('player_direction_changed', (uuid, direction) => {
+      try {
+        const { lobby: lobby_name } = clientMetadata.get(uuid);
+        if (lobby_name) {
+          const lobby = LobbyManager.get(lobby_name);
+          lobby.players.get(uuid).snake.handleInput(direction);
+        }
+      } catch (error) {
+        reportError(io, error);
+      }
+    });
+
+    // Send initial list of lobbies to this client.
+    client.emit('lobby_list_updated', LobbyManager.packageData());
   });
-
-  return wss;
 }
 
-function reportError(clients, error) {
+function reportError(io, error) {
   console.log(error.stack);
-  sendToClients(clients, {
-    type: 'message_received',
-    message: error.message,
-  });
+  io.emit('message_received', error.message);
 }
 
 module.exports = gameServer;
