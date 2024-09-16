@@ -13,6 +13,8 @@ function gameServer(httpServer) {
     connectionStateRecovery: {},
   });
 
+  let disconnectTimeout = null;
+
   function sendGameEventToPlayers(type, game) {
     if (type === 'game_ended') {
       io.emit('lobby_list_updated', LobbyManager.packageData());
@@ -21,6 +23,7 @@ function gameServer(httpServer) {
   }
 
   io.on('connection', (client) => {
+    clearTimeout(disconnectTimeout);
     client.on('opened', (uuid) => {
       let new_uuid = uuid;
       // If no uuid was provided by client, generate one and send back.
@@ -57,33 +60,36 @@ function gameServer(httpServer) {
     });
 
     client.on('disconnect', () => {
-      try {
-        const keys = [...clientMetadata.keys()];
-        const values = [...clientMetadata.values()];
-        let uuid = null;
-        for (let i = 0; i < keys.length; i++) {
-          uuid = keys[i];
-          const data = values[i];
-          if (client === data.ws) {
-            if (data.lobby) {
-              const lobby = LobbyManager.get(data.lobby);
-              lobby.removePlayer(uuid);
-              if (lobby.state === 'lobby' && lobby.allPlayersAreReady)
-                lobby.startGame();
-              io.emit('lobby_list_updated', LobbyManager.packageData());
+      // Disconnect event runs even if client successfully reconnects. Run after a delay.
+      disconnectTimeout = setTimeout(() => {
+        try {
+          const keys = [...clientMetadata.keys()];
+          const values = [...clientMetadata.values()];
+          let uuid = null;
+          for (let i = 0; i < keys.length; i++) {
+            uuid = keys[i];
+            const data = values[i];
+            if (client === data.ws) {
+              if (data.lobby) {
+                const lobby = LobbyManager.get(data.lobby);
+                lobby.removePlayer(uuid);
+                if (lobby.state === 'lobby' && lobby.allPlayersAreReady)
+                  lobby.startGame();
+                io.emit('lobby_list_updated', LobbyManager.packageData());
+              }
+              clientMetadata.delete(uuid);
+              break;
             }
-            clientMetadata.delete(uuid);
-            break;
           }
+          io.emit(
+            'message_received',
+            `Client disconnected via socket.io: ${uuid}`,
+          );
+          console.log('Client disconnected via socket.io: ', uuid);
+        } catch (error) {
+          reportError(io, error);
         }
-        io.emit(
-          'message_received',
-          `Client disconnected via socket.io: ${uuid}`,
-        );
-        console.log('Client disconnected via socket.io: ', uuid);
-      } catch (error) {
-        reportError(io, error);
-      }
+      }, 30000);
     });
 
     client.on('name_change_requested', (uuid, name) => {
