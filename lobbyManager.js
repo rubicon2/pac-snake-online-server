@@ -55,17 +55,17 @@ class LobbyManager {
   }
 
   packageData() {
-    const packaged = [];
+    const packaged = {};
     this.#lobbies.forEach((lobby, lobby_name) => {
       const players = lobby.packagePlayerData();
       const player_count = Object.keys(players).length;
-      packaged.push({
+      packaged[lobby_name] = {
         lobby_name,
         lobby_state: lobby.state,
         lobby_speed: lobby.speed,
         player_count,
         players,
-      });
+      };
     });
 
     return packaged;
