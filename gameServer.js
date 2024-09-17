@@ -266,9 +266,6 @@ function gameServer(httpServer) {
         reportError(io, error);
       }
     });
-
-    // Send initial list of lobbies to this client.
-    client.emit('lobby_list_updated', LobbyManager.packageData());
   });
 }
 
