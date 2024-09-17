@@ -163,16 +163,20 @@ function gameServer(httpServer) {
 
         // Send client messages if they can't join the lobby for whatever reason.
         const newLobby = LobbyManager.get(lobby_name);
-        if (newLobby.state !== 'lobby')
+        if (newLobby.state !== 'lobby') {
           client.emit(
             'message_received',
             `Cannot join ${lobby_name} as the game is already running.`,
           );
-        if (!newLobby.playerCanJoin(uuid))
+          return;
+        }
+        if (!newLobby.playerCanJoin(uuid)) {
           client.emit(
             'message_received',
             `Cannot join ${lobby_name} as it is already full.`,
           );
+          return;
+        }
 
         // Now join the requested lobby if the game is not running and there are spots free.
         clientMetadata.get(uuid).lobby = lobby_name;
