@@ -5,6 +5,15 @@ const LobbyManager = require('./lobbyManager');
 // Map uuid to sockets, etc. as the socket will change between connections, but the client will make sure the uuid stays the same.
 const clientMetadata = new Map();
 
+function packageClientMetadata(uuid) {
+  if (uuid) {
+    const { name, lobby, time_connected } = clientMetadata.get(uuid);
+    return { name, lobby, time_connected };
+  } else {
+    return null;
+  }
+}
+
 function gameServer(httpServer) {
   const io = socketIO(httpServer, {
     cors: {
@@ -103,8 +112,7 @@ function gameServer(httpServer) {
           const { lobby: lobby_name } = clientMetadata.get(uuid);
           if (lobby_name)
             LobbyManager.get(lobby_name).players.get(uuid).name = client_name;
-
-          client.emit('name_updated', client_name);
+          client.emit('client_data_updated', packageClientMetadata(uuid));
           io.emit('lobby_list_updated', LobbyManager.packageData());
         } else {
           client.emit(
@@ -172,7 +180,7 @@ function gameServer(httpServer) {
         const message = `${name} joined lobby: ${lobby_name}.`;
         console.log(message);
         io.emit('message_received', message);
-        client.emit('joined_lobby', lobby_name);
+        client.emit('client_data_updated', packageClientMetadata(uuid));
         io.emit('lobby_list_updated', LobbyManager.packageData());
       } catch (error) {
         reportError(io, error);
@@ -187,7 +195,7 @@ function gameServer(httpServer) {
         if (lobby_name) {
           const lobby = LobbyManager.get(lobby_name);
           lobby.removePlayer(uuid);
-          client.emit('left_lobby');
+          client.emit('client_data_updated', packageClientMetadata(uuid));
           const message = `${name} left lobby: ${lobby_name}.`;
           console.log(message);
           io.emit('message_received', message);
@@ -227,6 +235,10 @@ function gameServer(httpServer) {
 
     client.on('lobby_header_update_requested', (uuid) => {
       client.emit('lobby_header_updated', clientMetadata.get(uuid).lobby);
+    });
+
+    client.on('client_data_update_requested', (uuid) => {
+      client.emit('client_data_updated', packageClientMetadata(uuid));
     });
 
     client.on('player_ready_changed', (uuid, ready) => {
