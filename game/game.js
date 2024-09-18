@@ -142,6 +142,8 @@ class Game {
   packageData() {
     return {
       state: this.#state,
+      minPos: MIN_POS,
+      maxPos: MAX_POS,
       speed: this.speed,
       // Use the array'd version of players instead of the map, which cannot be stringified.
       players: this.packagePlayerData(),
