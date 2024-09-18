@@ -98,7 +98,7 @@ function gameServer(httpServer) {
         } catch (error) {
           reportError(io, error);
         }
-      }, 30000);
+      }, 5000);
     });
 
     client.on('name_change_requested', (uuid, name) => {
