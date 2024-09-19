@@ -71,35 +71,37 @@ function gameServer(httpServer) {
     client.on('disconnect', () => {
       // If disconnect event is emitted but client is active, this means it is trying to reconnect.
       // If inactive, then the connection was forcibly closed, e.g. by a browser tab being closed.
-      if (!client.active) {
-        try {
-          const keys = [...clientMetadata.keys()];
-          const values = [...clientMetadata.values()];
-          let uuid = null;
-          for (let i = 0; i < keys.length; i++) {
-            uuid = keys[i];
-            const data = values[i];
-            if (client === data.ws) {
-              if (data.lobby) {
-                const lobby = LobbyManager.get(data.lobby);
-                lobby.removePlayer(uuid);
-                if (lobby.state === 'lobby' && lobby.allPlayersAreReady)
-                  lobby.startGame();
-                io.emit('lobby_list_updated', LobbyManager.packageData());
+      disconnectTimeout = setTimeout(() => {
+        if (!client.active) {
+          try {
+            const keys = [...clientMetadata.keys()];
+            const values = [...clientMetadata.values()];
+            let uuid = null;
+            for (let i = 0; i < keys.length; i++) {
+              uuid = keys[i];
+              const data = values[i];
+              if (client === data.ws) {
+                if (data.lobby) {
+                  const lobby = LobbyManager.get(data.lobby);
+                  lobby.removePlayer(uuid);
+                  if (lobby.state === 'lobby' && lobby.allPlayersAreReady)
+                    lobby.startGame();
+                  io.emit('lobby_list_updated', LobbyManager.packageData());
+                }
+                clientMetadata.delete(uuid);
+                break;
               }
-              clientMetadata.delete(uuid);
-              break;
             }
+            io.emit(
+              'message_received',
+              `Client disconnected via socket.io: ${uuid}`,
+            );
+            console.log('Client disconnected via socket.io: ', uuid);
+          } catch (error) {
+            reportError(io, error);
           }
-          io.emit(
-            'message_received',
-            `Client disconnected via socket.io: ${uuid}`,
-          );
-          console.log('Client disconnected via socket.io: ', uuid);
-        } catch (error) {
-          reportError(io, error);
         }
-      }
+      }, 5000);
     });
 
     client.on('name_change_requested', (uuid, name) => {
