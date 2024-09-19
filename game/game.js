@@ -98,7 +98,7 @@ class Game {
 
   #foodPickups = [];
 
-  #countdownValue = 3;
+  #countdownValue = 4;
   #lastRoundWinner = null;
 
   #currentRound = 0;
@@ -181,7 +181,7 @@ class Game {
 
   #startCountdown() {
     this.#state = 'countdown';
-    this.#countdownValue = 3;
+    this.#countdownValue = 4;
     this.onGameEvent('game_round_countdown_started', this);
     // Then start the loop.
     clearInterval(this.#countdownInterval);
