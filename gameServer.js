@@ -69,8 +69,9 @@ function gameServer(httpServer) {
     });
 
     client.on('disconnect', () => {
-      // Disconnect event runs even if client successfully reconnects. Run after a delay.
-      disconnectTimeout = setTimeout(() => {
+      // If disconnect event is emitted but client is active, this means it is trying to reconnect.
+      // If inactive, then the connection was forcibly closed, e.g. by a browser tab being closed.
+      if (!client.active) {
         try {
           const keys = [...clientMetadata.keys()];
           const values = [...clientMetadata.values()];
@@ -98,7 +99,7 @@ function gameServer(httpServer) {
         } catch (error) {
           reportError(io, error);
         }
-      }, 5000);
+      }
     });
 
     client.on('name_change_requested', (uuid, name) => {
