@@ -72,7 +72,7 @@ function gameServer(httpServer) {
       // If disconnect event is emitted but client is active, this means it is trying to reconnect.
       // If inactive, then the connection was forcibly closed, e.g. by a browser tab being closed.
       disconnectTimeout = setTimeout(() => {
-        if (!client.active) {
+        if (!client.recovered) {
           try {
             const keys = [...clientMetadata.keys()];
             const values = [...clientMetadata.values()];
