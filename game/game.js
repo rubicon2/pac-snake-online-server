@@ -317,7 +317,8 @@ class Game {
 
           if (playerLength >= otherLength) {
             projectedPositions.get(otherPlayer).needsToDie = true;
-            player.killCount++;
+            // Only want the kill to count if this snake doesn't die too.
+            if (playerLength > otherLength) player.killCount++;
           }
         }
       }
