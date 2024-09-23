@@ -283,6 +283,7 @@ class Game {
   #moveSnakes() {
     // Need to do collision checking here and not on player class, as we can check the positions of other snakes only here.
     const playersArray = [...this.#players.values()];
+    const isMultiplayerGame = playersArray.length > 1;
 
     const projectedPositions = new Map();
     for (const player of playersArray) {
@@ -388,19 +389,22 @@ class Game {
       snake.moveTo(newX, newY);
     }
 
-    // Check if a player has won the round and deal with that.
-    const roundWinner = this.#getRoundWinner();
-    if (roundWinner) {
-      roundWinner.roundsWon++;
-      this.#lastRoundWinner = roundWinner.name;
-      // Check if game is over!
-      if (roundWinner.roundsWon >= this.roundsToWin) {
-        this.#handleGameOver();
-      } else {
-        // If not game over, then the round is over.
-        this.#handleRoundOver();
+    // If this is a multiplayer game, check if a player has won the round and deal with that.
+    if (isMultiplayerGame) {
+      const roundWinner = this.#getRoundWinner();
+      if (roundWinner) {
+        roundWinner.roundsWon++;
+        this.#lastRoundWinner = roundWinner.name;
+        // Check if game is over!
+        if (roundWinner.roundsWon >= this.roundsToWin) {
+          this.#handleGameOver();
+        } else {
+          // If not game over, then the round is over.
+          this.#handleRoundOver();
+        }
       }
     }
+
     // If all players are dead, deal with that.
     if (this.alivePlayers.length === 0) {
       this.#handleAllSnakesDead();
