@@ -32,7 +32,7 @@ class LobbyManager {
       throw new Error('Cannot create new lobby: name required.');
     }
 
-    this.#lobbies.set(name, new Game(handleGameEvent));
+    this.#lobbies.set(name, new Game(name, handleGameEvent));
   }
 
   delete(name) {

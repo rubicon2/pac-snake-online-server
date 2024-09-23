@@ -111,11 +111,13 @@ class Game {
     // Considered having a function that throws an error, to avoid strange errors where someone might forget
     // to supply an onGameEvent argument, but decided against it - game class shouldn't care what onGameEvent
     // does, if it does anything at all.
+    name,
     onGameEvent = () => {},
     roundsToWin = 3,
     // index 1 is 'normal' speed.
     speed = GAME_SPEEDS[this.#currentSpeedIndex],
   ) {
+    this.name = name;
     this.onGameEvent = onGameEvent;
     this.roundsToWin = roundsToWin;
     this.speed = speed;

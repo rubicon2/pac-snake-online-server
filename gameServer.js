@@ -28,7 +28,8 @@ function gameServer(httpServer) {
     if (type === 'game_ended') {
       io.emit('lobby_list_updated', LobbyManager.packageData());
     }
-    io.emit(type, game.packageData());
+    // This should only send to players that are in the game.
+    io.to(game.name).emit(type, game.packageData());
   }
 
   io.on('connection', (client) => {
@@ -189,6 +190,7 @@ function gameServer(httpServer) {
         io.emit('message_received', message);
         client.emit('client_data_updated', packageClientMetadata(uuid));
         io.emit('lobby_list_updated', LobbyManager.packageData());
+        client.join(lobby_name);
       } catch (error) {
         reportError(io, error);
       }
@@ -202,6 +204,7 @@ function gameServer(httpServer) {
         if (lobby_name) {
           const lobby = LobbyManager.get(lobby_name);
           lobby.removePlayer(uuid);
+          client.leave(lobby_name);
           client.emit('client_data_updated', packageClientMetadata(uuid));
           const message = `${name} left lobby: ${lobby_name}.`;
           console.log(message);
