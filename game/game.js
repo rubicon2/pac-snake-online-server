@@ -431,7 +431,7 @@ class Game {
   }
 
   #handleAllSnakesDead() {
-    if (this.#players.size === 1) {
+    if (!isMultiplayerGame) {
       // If player dies in a singleplayer game, trigger the stats screen and end the game.
       this.#state = 'game_over';
       this.onGameEvent('single_player_game_over', this);
