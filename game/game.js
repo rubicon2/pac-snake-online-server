@@ -284,19 +284,59 @@ class Game {
     // Need to do collision checking here and not on player class, as we can check the positions of other snakes only here.
     const playersArray = [...this.#players.values()];
 
-    // Remove the tail of each snake before doing any collision checking.
-    // Each snake moves sequentially, but it looks simultaneous - this avoids
-    // a player getting killed by a tail that moves out of the way on the same update.
+    const projectedPositions = new Map();
     for (const player of playersArray) {
       const { snake } = player;
+      // Remove the tail of each snake before doing any collision checking.
+      // Each snake moves sequentially, but it looks simultaneous - this avoids
+      // a player getting killed by a tail that moves out of the way on the same update.
       if (snake.chunks.length >= snake.targetLength) snake.chunks.pop();
+      // Get projected positions of all alive snakes.
+      // Make it a map so we can just get these later on in the player loops without recalculating.
+      projectedPositions.set(player, {
+        position: player.snake.getProjectedPosition(),
+        needsToDie: false,
+      });
     }
 
+    // See whether any of the projected positions conflict before checking individual snake chunks, etc.
+    for (const player of projectedPositions.keys()) {
+      for (const otherPlayer of projectedPositions.keys()) {
+        // Do not check projected position of one snake against itself.
+        if (otherPlayer === player) continue;
+
+        const { x, y } = projectedPositions.get(player).position;
+        const { x: otherX, y: otherY } =
+          projectedPositions.get(otherPlayer).position;
+
+        // If two snakes are going to go into the same square on the next update.
+        if (x === otherX && y === otherY) {
+          // Find the longest snake - the winner.
+          const playerLength = player.snake.chunks.length;
+          const otherLength = otherPlayer.snake.chunks.length;
+
+          if (playerLength >= otherLength) {
+            projectedPositions.get(otherPlayer).needsToDie = true;
+            player.killCount++;
+          }
+        }
+      }
+    }
+
+    for (const current of projectedPositions) {
+      const [player, values] = current;
+      if (values.needsToDie) {
+        player.snake.kill();
+        player.deathCount++;
+      }
+    }
+
+    // Now actually move snakes if there is nothing in the way, etc.
     for (const player of playersArray) {
       const { snake } = player;
       if (!snake.isAlive) continue;
 
-      const { x: newX, y: newY } = snake.getProjectedPosition();
+      const { x: newX, y: newY } = projectedPositions.get(player).position;
 
       // Collision detection for food pickups.
       for (const foodPickup of this.#foodPickups) {
@@ -336,23 +376,6 @@ class Game {
             // Update stats for players.
             player.deathCount++;
             otherPlayer.killCount++;
-            // Check if a player has won the round and deal with that.
-            const roundWinner = this.#getRoundWinner();
-            if (roundWinner) {
-              roundWinner.roundsWon++;
-              this.#lastRoundWinner = roundWinner.name;
-              // Check if game is over!
-              if (roundWinner.roundsWon >= this.roundsToWin) {
-                this.#handleGameOver();
-              } else {
-                // If not game over, then the round is over.
-                this.#handleRoundOver();
-              }
-            }
-            // If all players are dead, deal with that.
-            if (this.alivePlayers.length === 0) {
-              this.#handleAllSnakesDead();
-            }
           }
         }
       }
@@ -362,6 +385,24 @@ class Game {
 
       // If no collisions happened, create new chunk at newX and newY positions.
       snake.moveTo(newX, newY);
+    }
+
+    // Check if a player has won the round and deal with that.
+    const roundWinner = this.#getRoundWinner();
+    if (roundWinner) {
+      roundWinner.roundsWon++;
+      this.#lastRoundWinner = roundWinner.name;
+      // Check if game is over!
+      if (roundWinner.roundsWon >= this.roundsToWin) {
+        this.#handleGameOver();
+      } else {
+        // If not game over, then the round is over.
+        this.#handleRoundOver();
+      }
+    }
+    // If all players are dead, deal with that.
+    if (this.alivePlayers.length === 0) {
+      this.#handleAllSnakesDead();
     }
   }
 
