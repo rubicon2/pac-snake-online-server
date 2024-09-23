@@ -440,7 +440,7 @@ class Game {
       }, 10000);
     } else {
       // If all players are dead in a multiplayer game, trigger failure message and start a new round.
-      this.#state = 'round_over';
+      this.#state = 'round_failed';
       this.onGameEvent('game_round_failed', this);
       clearTimeout(this.#roundOverTimeout);
       this.#roundOverTimeout = setTimeout(() => {
