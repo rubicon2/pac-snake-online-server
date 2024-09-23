@@ -407,7 +407,7 @@ class Game {
 
     // If all players are dead, deal with that.
     if (this.alivePlayers.length === 0) {
-      this.#handleAllSnakesDead();
+      this.#handleAllSnakesDead(isMultiplayerGame);
     }
   }
 
@@ -430,7 +430,7 @@ class Game {
     }, 5000);
   }
 
-  #handleAllSnakesDead() {
+  #handleAllSnakesDead(isMultiplayerGame) {
     if (!isMultiplayerGame) {
       // If player dies in a singleplayer game, trigger the stats screen and end the game.
       this.#state = 'game_over';
