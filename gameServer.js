@@ -6,7 +6,7 @@ const LobbyManager = require('./lobbyManager');
 const clientMetadata = new Map();
 
 function packageClientMetadata(uuid) {
-  if (uuid) {
+  if (uuid && clientMetadata.has(uuid)) {
     const { name, lobby, time_connected } = clientMetadata.get(uuid);
     return { name, lobby, time_connected };
   } else {
