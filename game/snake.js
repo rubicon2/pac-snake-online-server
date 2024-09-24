@@ -2,11 +2,12 @@ const { loopInt } = require('loop-range');
 const { MIN_POS, MAX_POS } = require('./data');
 
 class Snake {
-  constructor(originX, originY, startLength, initialMoveDir) {
+  constructor(originX, originY, startLength, initialMoveDir, onChunksChange) {
     this.headX = originX;
     this.headY = originY;
     this.startLength = startLength;
     this.initialMoveDir = initialMoveDir;
+    this.onChunksChange = onChunksChange;
     this.nextMoveDir = initialMoveDir;
     this.lastMoveDir = initialMoveDir;
     this.targetLength = startLength;
@@ -38,7 +39,11 @@ class Snake {
 
   kill() {
     this.isAlive = false;
-    this.chunks = [];
+    const chunkDestroyInterval = setInterval(() => {
+      this.chunks.pop();
+      this.onChunksChange();
+      if (this.chunks.length === 0) clearInterval(chunkDestroyInterval);
+    }, 500);
   }
 
   handleInput(direction) {

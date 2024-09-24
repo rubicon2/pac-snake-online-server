@@ -268,7 +268,9 @@ class Game {
     const players = [...this.#players.values()];
     for (let i = 0; i < players.length; i++) {
       const { x, y, direction } = SNAKE_SETUP_DATA[i];
-      players[i].snake = new Snake(x, y, 3, direction);
+      players[i].snake = new Snake(x, y, 3, direction, () => {
+        this.onGameEvent('game_state_updated', this);
+      });
     }
   }
 
