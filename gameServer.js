@@ -65,6 +65,8 @@ function gameServer(httpServer) {
         // If a client has connected and provided an existing uuid, they must have reconnected...
         // Update the client's metadata with the new socket.
         clientMetadata.get(new_uuid).ws = client;
+        const { lobby } = clientMetadata.get(new_uuid);
+        client.join(lobby);
         console.log('Client reconnected via socket.io: ', new_uuid);
       }
     });
@@ -77,14 +79,17 @@ function gameServer(httpServer) {
           try {
             const keys = [...clientMetadata.keys()];
             const values = [...clientMetadata.values()];
+            // Find uuid of this client.
             let uuid = null;
             for (let i = 0; i < keys.length; i++) {
               uuid = keys[i];
               const data = values[i];
               if (client === data.ws) {
+                // Remove player from any games.
                 if (data.lobby) {
                   const lobby = LobbyManager.get(data.lobby);
                   lobby.removePlayer(uuid);
+                  client.leave(data.lobby);
                   if (lobby.state === 'lobby' && lobby.allPlayersAreReady)
                     lobby.startGame();
                   io.emit('lobby_list_updated', LobbyManager.packageData());
