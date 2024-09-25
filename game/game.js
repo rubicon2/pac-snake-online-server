@@ -74,7 +74,8 @@ class Game {
       this.#reassignPlayerColors();
     }
     this.onGameEvent('game_state_updated', this);
-    if (this.#players.size < MIN_PLAYERS) this.endGame();
+    if (this.#state !== 'lobby' && this.#players.size < MIN_PLAYERS)
+      this.endGame();
   }
   hasPlayer(id) {
     return this.#players.has(id);
