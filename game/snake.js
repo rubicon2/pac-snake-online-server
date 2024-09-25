@@ -39,11 +39,6 @@ class Snake {
 
   kill() {
     this.isAlive = false;
-    const chunkDestroyInterval = setInterval(() => {
-      this.chunks.pop();
-      this.onChunksChange();
-      if (this.chunks.length === 0) clearInterval(chunkDestroyInterval);
-    }, 500);
   }
 
   handleInput(direction) {
