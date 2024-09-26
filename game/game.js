@@ -189,7 +189,7 @@ class Game {
     // Then start the loop.
     clearInterval(this.#countdownInterval);
     this.#countdownInterval = setInterval(() => {
-      if (this.#countdownValue === 'GO!') {
+      if (this.#countdownValue <= 0) {
         clearInterval(this.#countdownInterval);
         this.#state = 'running';
         this.onGameEvent('game_round_started', this);
@@ -197,7 +197,6 @@ class Game {
         this.#update();
       } else {
         this.#countdownValue--;
-        if (this.#countdownValue === 0) this.#countdownValue = 'GO!';
       }
       this.onGameEvent('game_round_countdown_updated', this);
     }, 1000);
