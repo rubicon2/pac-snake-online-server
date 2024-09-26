@@ -95,14 +95,17 @@ function gameServer(httpServer) {
                   io.emit('lobby_list_updated', LobbyManager.packageData());
                 }
                 clientMetadata.delete(uuid);
+                io.emit(
+                  'message_received',
+                  `Client disconnected via socket.io: ${data.name || uuid}`,
+                );
+                console.log(
+                  'Client disconnected via socket.io: ',
+                  data.name || uuid,
+                );
                 break;
               }
             }
-            io.emit(
-              'message_received',
-              `Client disconnected via socket.io: ${uuid}`,
-            );
-            console.log('Client disconnected via socket.io: ', uuid);
           } catch (error) {
             reportError(io, error);
           }
