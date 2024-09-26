@@ -66,7 +66,7 @@ function gameServer(httpServer) {
         // Update the client's metadata with the new socket.
         clientMetadata.get(new_uuid).ws = client;
         const { lobby } = clientMetadata.get(new_uuid);
-        client.join(lobby);
+        if (lobby) client.join(lobby);
         console.log('Client reconnected via socket.io: ', new_uuid);
       }
     });
