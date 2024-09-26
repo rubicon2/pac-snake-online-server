@@ -43,9 +43,11 @@ function gameServer(httpServer) {
         while (clientMetadata.has(new_uuid)) {
           new_uuid = crypto.randomUUID();
         }
-        // Send back to client so it can use with all future messages.
-        client.emit('uuid_received', new_uuid);
       }
+
+      // Send back to client so it can use with all future messages.
+      // Either just relay uuid the client sent to us, or if they send us null, send them the one we just generated.
+      client.emit('uuid_received', new_uuid);
 
       // Now create metadata for this client.
       if (!clientMetadata.has(new_uuid)) {
@@ -84,6 +86,9 @@ function gameServer(httpServer) {
             for (let i = 0; i < keys.length; i++) {
               uuid = keys[i];
               const data = values[i];
+
+              // If player has reconnected, the client socket will not match the socket stored in clientMetadata.
+              // If the player has really disconnected, this will match, and the clientMetadata needs to be cleared, etc.
               if (client === data.ws) {
                 // Remove player from any games.
                 if (data.lobby) {
