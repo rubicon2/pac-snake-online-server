@@ -306,9 +306,15 @@ class Game {
 
     // See whether any of the projected positions conflict before checking individual snake chunks, etc.
     for (const player of projectedPositions.keys()) {
+      // Do not check projected position of a dead snake.
+      if (!player.snake.isAlive) continue;
+
       for (const otherPlayer of projectedPositions.keys()) {
         // Do not check projected position of one snake against itself.
         if (otherPlayer === player) continue;
+
+        // Do not check projected position of a dead snake.
+        if (!otherPlayer.snake.isAlive) continue;
 
         const { x, y } = projectedPositions.get(player).position;
         const { x: otherX, y: otherY } =
