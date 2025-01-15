@@ -1,5 +1,6 @@
 const socketIO = require('socket.io');
 const validator = require('validator');
+const crypto = require('node:crypto');
 const LobbyManager = require('./lobbyManager');
 
 // Map uuid to sockets, etc. as the socket will change between connections, but the client will make sure the uuid stays the same.
