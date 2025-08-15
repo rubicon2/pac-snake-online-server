@@ -1,3 +1,3 @@
 # Pac-Snake Online
 
-https://pac-snake-online.adaptable.app/
+[Deployment on Railway](https://pac-snake-online-server-production.up.railway.app)
